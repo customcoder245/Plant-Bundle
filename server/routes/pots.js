@@ -1,0 +1,55 @@
+const express = require('express');
+const router = express.Router();
+const pool = require('../db/pool');
+const { logActivity } = require('../services/activityService');
+
+router.get('/colors', async (req, res) => {
+    try {
+        const result = await pool.query('SELECT * FROM pot_colors WHERE is_active = true ORDER BY display_order');
+        res.json(result.rows);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+router.post('/colors', async (req, res) => {
+    const { name, hex_code, display_order } = req.body;
+    try {
+        const result = await pool.query(
+            `INSERT INTO pot_colors (name, hex_code, display_order) VALUES ($1, $2, $3) RETURNING *`,
+            [name, hex_code, display_order || 0]
+        );
+        await logActivity('POT_COLOR_CREATED', `Created pot color: ${name}`, { color_id: result.rows[0].id });
+        res.json(result.rows[0]);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+router.put('/colors/:id', async (req, res) => {
+    const { id } = req.params;
+    const { name, hex_code, display_order, is_active } = req.body;
+    try {
+        const result = await pool.query(
+            `UPDATE pot_colors SET name = COALESCE($1, name), hex_code = COALESCE($2, hex_code), display_order = COALESCE($3, display_order), is_active = COALESCE($4, is_active), updated_at = CURRENT_TIMESTAMP WHERE id = $5 RETURNING *`,
+            [name, hex_code, display_order, is_active, id]
+        );
+        await logActivity('POT_COLOR_UPDATED', `Updated pot color: ${result.rows[0].name}`, { color_id: id });
+        res.json(result.rows[0]);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+router.delete('/colors/:id', async (req, res) => {
+    const { id } = req.params;
+    try {
+        await pool.query('DELETE FROM pot_colors WHERE id = $1', [id]);
+        await logActivity('POT_COLOR_DELETED', `Deleted pot color ID: ${id}`, { color_id: id });
+        res.json({ success: true });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+module.exports = router;

@@ -1,0 +1,73 @@
+{% comment %}Plant + Pot Bundle Selector - Add to product.liquid{% endcomment %}
+
+<div id="pot-selector-app" data-product-id="{{ product.id }}" data-app-url="{{ shop.metafields.plant_pot_bundle.app_url }}" style="margin: 20px 0;">
+  <div class="pot-selector-container">
+    <label class="pot-selector-label"><strong>Choose Your Pot Color:</strong></label>
+    <div class="pot-color-options" id="pot-color-options"><div class="pot-color-loading">Loading pot options...</div></div>
+    <div class="no-pot-option" style="margin-top: 15px;"><label><input type="radio" name="pot_color" value="NO POT" id="no-pot-radio"><span>No Pot (Save $10)</span></label></div>
+    <input type="hidden" name="properties[Pot Color]" id="pot-color-input" value="">
+  </div>
+</div>
+
+<style>
+.pot-selector-container { padding: 15px; border: 1px solid #e5e5e5; border-radius: 8px; background: #fafafa; }
+.pot-selector-label { display: block; margin-bottom: 12px; font-size: 14px; }
+.pot-color-options { display: flex; flex-wrap: wrap; gap: 10px; }
+.pot-color-swatch { width: 40px; height: 40px; border-radius: 50%; border: 3px solid transparent; cursor: pointer; transition: all 0.2s ease; position: relative; }
+.pot-color-swatch:hover { transform: scale(1.1); }
+.pot-color-swatch.selected { border-color: #000; }
+.pot-color-swatch.out-of-stock { opacity: 0.4; cursor: not-allowed; }
+.pot-color-swatch.out-of-stock::after { content: ''; position: absolute; top: 50%; left: 0; right: 0; height: 2px; background: red; transform: rotate(-45deg); }
+.pot-color-name { font-size: 11px; text-align: center; margin-top: 4px; }
+.no-pot-option label { display: flex; align-items: center; gap: 8px; cursor: pointer; }
+</style>
+
+<script>
+(function() {
+  const container = document.getElementById('pot-selector-app');
+  const productId = container.dataset.productId;
+  const appUrl = container.dataset.appUrl || 'https://your-app-url.railway.app';
+  const optionsContainer = document.getElementById('pot-color-options');
+  const hiddenInput = document.getElementById('pot-color-input');
+  const noPotRadio = document.getElementById('no-pot-radio');
+
+  async function loadPotOptions() {
+    try {
+      const [colorsRes, inventoryRes, configRes] = await Promise.all([
+        fetch(`${appUrl}/api/pots/colors`), fetch(`${appUrl}/api/inventory`), fetch(`${appUrl}/api/product-config/${productId}`)
+      ]);
+      const colors = await colorsRes.json(); const inventory = await inventoryRes.json(); const config = await configRes.json();
+      if (!config || !config.is_enabled) { container.style.display = 'none'; return; }
+      const variantId = document.querySelector('[name="id"]')?.value;
+      const sizeMapping = config.size_mappings?.find(m => m.shopify_variant_id == variantId);
+      const potSize = sizeMapping?.pot_size || 'Medium';
+      optionsContainer.innerHTML = colors.map(color => {
+        const inv = inventory.find(i => i.color_id === color.id && i.size === potSize);
+        const inStock = inv && inv.quantity > 0;
+        return `<div class="pot-color-item"><div class="pot-color-swatch ${inStock ? '' : 'out-of-stock'}" style="background-color: ${color.hex_code};" data-color-name="${color.name}" data-in-stock="${inStock}" title="${color.name}${inStock ? '' : ' (Out of Stock)'}"></div><div class="pot-color-name">${color.name}</div></div>`;
+      }).join('');
+      document.querySelectorAll('.pot-color-swatch').forEach(swatch => {
+        swatch.addEventListener('click', function() {
+          if (this.dataset.inStock === 'false') return;
+          document.querySelectorAll('.pot-color-swatch').forEach(s => s.classList.remove('selected'));
+          this.classList.add('selected'); hiddenInput.value = this.dataset.colorName; noPotRadio.checked = false;
+          updateProductImage(this.dataset.colorName, potSize);
+        });
+      });
+      noPotRadio.addEventListener('change', function() { if (this.checked) { document.querySelectorAll('.pot-color-swatch').forEach(s => s.classList.remove('selected')); hiddenInput.value = 'NO POT'; } });
+    } catch (error) { console.error('Failed to load pot options:', error); optionsContainer.innerHTML = '<div>Unable to load pot options</div>'; }
+  }
+
+  async function updateProductImage(colorName, size) {
+    try {
+      const configRes = await fetch(`${appUrl}/api/product-config/${productId}`); const config = await configRes.json();
+      const imagesRes = await fetch(`${appUrl}/api/images/product/${config.id}`); const images = await imagesRes.json();
+      const matchingImage = images.find(img => img.color_name === colorName && img.size === size);
+      if (matchingImage) { const mainImage = document.querySelector('.product-featured-image, .product__media img'); if (mainImage) mainImage.src = matchingImage.image_url; }
+    } catch (error) { console.error('Failed to update image:', error); }
+  }
+
+  loadPotOptions();
+  document.addEventListener('change', function(e) { if (e.target.name === 'id') loadPotOptions(); });
+})();
+</script>
