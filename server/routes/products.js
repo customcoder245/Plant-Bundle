@@ -2,37 +2,43 @@ const express = require('express');
 const router = express.Router();
 const pool = require('../db/pool');
 const { logActivity } = require('../services/activityService');
-const { shopify } = require('../index');
 
 // POST /api/products/create - Create a new plant product in Shopify and configure it
 router.post('/create', async (req, res) => {
-    // Use a permanent Admin API Access Token - never expires, survives all server restarts
     const shop = process.env.SHOPIFY_STORE_DOMAIN || 'democms2.myshopify.com';
     const accessToken = process.env.SHOPIFY_ACCESS_TOKEN;
 
     if (!accessToken) {
-        return res.status(500).json({ error: 'SHOPIFY_ACCESS_TOKEN not configured. Add it to your environment variables.' });
+        return res.status(500).json({ error: 'SHOPIFY_ACCESS_TOKEN not configured in environment variables.' });
     }
-
-    const session = { shop, accessToken };
 
     const { title, description, variants } = req.body;
 
     try {
-        const client = new shopify.api.clients.Rest({ session });
-
-        const productData = {
-            product: {
-                title,
-                body_html: description,
-                variants: variants.map(v => ({ option1: v.title, price: v.price })),
+        // Use direct fetch to Shopify REST API - more reliable than SDK session objects
+        const shopifyRes = await fetch(`https://${shop}/admin/api/2023-10/products.json`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-Shopify-Access-Token': accessToken,
             },
-        };
+            body: JSON.stringify({
+                product: {
+                    title,
+                    body_html: description,
+                    variants: variants.map(v => ({ option1: v.title, price: v.price })),
+                },
+            }),
+        });
 
-        // Make the REST request to Shopify
-        const response = await client.post({ path: 'products', data: productData, type: 'application/json' });
+        if (!shopifyRes.ok) {
+            const errText = await shopifyRes.text();
+            console.error('Shopify API error:', errText);
+            return res.status(shopifyRes.status).json({ error: `Shopify API error: ${errText}` });
+        }
 
-        const shopifyProduct = response.body.product;
+        const shopifyData = await shopifyRes.json();
+        const shopifyProduct = shopifyData.product;
         const shopifyProductId = shopifyProduct.id;
 
         // Save to your DB
