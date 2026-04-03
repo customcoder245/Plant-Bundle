@@ -13,6 +13,9 @@ const { PostgreSQLSessionStorage } = require('@shopify/shopify-app-session-stora
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+// Force the PostgreSQL driver to use SSL natively to satisfy Neon DB's strict requirements
+process.env.PGSSLMODE = 'no-verify';
+
 // Use shopify-app-express for auth and session
 const shopify = shopifyApp({
   api: {
