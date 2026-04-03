@@ -90,4 +90,36 @@ router.post('/create', async (req, res) => {
     }
 });
 
+// GET /api/products - Get all products from Shopify for configuration
+router.get('/', async (req, res) => {
+    const shop = process.env.SHOPIFY_STORE_DOMAIN || 'democms2.myshopify.com';
+    const accessToken = process.env.SHOPIFY_ACCESS_TOKEN;
+
+    if (!accessToken) {
+        // Fallback for local dev session
+        try {
+            const sessions = await shopify.config.sessionStorage.findSessionsByShop(shop);
+            if (sessions && sessions.length > 0) {
+                const session = sessions[0];
+                const client = new shopify.api.clients.Rest({ session });
+                const response = await client.get({ path: 'products' });
+                return res.json(response.body.products);
+            }
+        } catch (e) {
+            console.error("Local session lookup failed:", e);
+        }
+        return res.status(500).json({ error: 'SHOPIFY_ACCESS_TOKEN not found for syncing.' });
+    }
+
+    try {
+        const shopifyRes = await fetch(`https://${shop}/admin/api/2023-10/products.json`, {
+            headers: { 'X-Shopify-Access-Token': accessToken }
+        });
+        const data = await shopifyRes.json();
+        res.json(data.products || []);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
 module.exports = router;
