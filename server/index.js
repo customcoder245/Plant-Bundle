@@ -6,6 +6,7 @@ const path = require('path');
 // Fix: The official package is @shopify/shopify-api
 const { shopifyApi, ApiVersion } = require('@shopify/shopify-api');
 const shopifyApp = require('@shopify/shopify-app-express').shopifyApp;
+const { PostgreSQLSessionStorage } = require('@shopify/shopify-app-session-storage-postgresql');
 
 // Routes will be required below after module.exports is set
 
@@ -29,6 +30,7 @@ const shopify = shopifyApp({
   webhooks: {
     path: '/api/webhooks',
   },
+  sessionStorage: new PostgreSQLSessionStorage(process.env.DATABASE_URL),
 });
 
 // Important: export shopify to use its API client in products.js
