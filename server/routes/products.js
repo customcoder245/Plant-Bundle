@@ -2,26 +2,19 @@ const express = require('express');
 const router = express.Router();
 const pool = require('../db/pool');
 const { logActivity } = require('../services/activityService');
-const { shopify } = require('../index'); // Import shopify object from index.js
+const { shopify } = require('../index');
 
 // POST /api/products/create - Create a new plant product in Shopify and configure it
 router.post('/create', async (req, res) => {
-    // Pull the real Access Token for your store from the active database
-    const shop = 'democms2.myshopify.com';
-    let session = undefined;
+    // Use a permanent Admin API Access Token - never expires, survives all server restarts
+    const shop = process.env.SHOPIFY_STORE_DOMAIN || 'democms2.myshopify.com';
+    const accessToken = process.env.SHOPIFY_ACCESS_TOKEN;
 
-    try {
-        const sessions = await shopify.config.sessionStorage.findSessionsByShop(shop);
-        if (sessions && sessions.length > 0) {
-            session = sessions[0]; // grab the most recently authenticated session
-        }
-    } catch (e) {
-        console.error("Error finding session:", e);
+    if (!accessToken) {
+        return res.status(500).json({ error: 'SHOPIFY_ACCESS_TOKEN not configured. Add it to your environment variables.' });
     }
 
-    if (!session) {
-        return res.status(401).json({ error: 'Shopify Session not found. Please open the App entirely once.' });
-    }
+    const session = { shop, accessToken };
 
     const { title, description, variants } = req.body;
 
