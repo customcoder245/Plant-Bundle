@@ -61,14 +61,44 @@ router.post('/', async (req, res) => {
 });
 
 router.put('/:id/toggle', async (req, res) => {
+    const { id } = req.params;
+    const shop = process.env.SHOPIFY_STORE_DOMAIN || 'democms2.myshopify.com';
+    const accessToken = process.env.SHOPIFY_ACCESS_TOKEN;
+
     try {
+        // 1. Toggle DB state first
         const result = await pool.query(
             `UPDATE product_pot_config SET is_enabled = NOT is_enabled, updated_at = CURRENT_TIMESTAMP WHERE id = $1 RETURNING *`,
-            [req.params.id]
+            [id]
         );
-        await logActivity('PRODUCT_TOGGLED', `Toggled product ID ${req.params.id}`, { config_id: req.params.id, is_enabled: result.rows[0].is_enabled });
-        res.json(result.rows[0]);
+
+        const config = result.rows[0];
+        const isEnabled = config.is_enabled;
+        const shopifyProductId = config.shopify_product_id;
+
+        // 2. Sync status to Shopify
+        if (accessToken) {
+            console.log(`Syncing status for ${shopifyProductId} to ${isEnabled ? 'ACTIVE' : 'DRAFT'}...`);
+
+            await fetch(`https://${shop}/admin/api/2023-10/products/${shopifyProductId}.json`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-Shopify-Access-Token': accessToken
+                },
+                body: JSON.stringify({
+                    product: {
+                        id: shopifyProductId,
+                        status: isEnabled ? 'active' : 'draft'
+                    }
+                })
+            });
+        }
+
+        await logActivity('PRODUCT_TOGGLED', `Toggled product ID ${id}. New Shopify status: ${isEnabled ? 'active' : 'draft'}`, { config_id: id, is_enabled: isEnabled });
+        res.json(config);
     } catch (error) {
+        console.error('Toggle Sync failed:', error);
         res.status(500).json({ error: error.message });
     }
 });
