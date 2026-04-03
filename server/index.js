@@ -94,11 +94,8 @@ app.get('/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
-// Auto-run DB migrations on startup
-const pool = require('./db/pool');
-const fs = require('fs');
-const path = require('path');
 
+// Auto-run DB migrations on startup
 async function runMigrations() {
   try {
     const migrations = `
