@@ -74,11 +74,32 @@ router.put('/:id/toggle', async (req, res) => {
 });
 
 router.delete('/:id', async (req, res) => {
+    const { id } = req.params;
+    const shop = process.env.SHOPIFY_STORE_DOMAIN || 'democms2.myshopify.com';
+    const accessToken = process.env.SHOPIFY_ACCESS_TOKEN;
+
     try {
-        await pool.query('DELETE FROM product_pot_config WHERE id = $1', [req.params.id]);
-        await logActivity('PRODUCT_CONFIG_DELETED', `Deleted product config ID: ${req.params.id}`, { config_id: req.params.id });
+        // 1. Find the Shopify ID from our DB first
+        const config = await pool.query('SELECT shopify_product_id FROM product_pot_config WHERE id = $1', [id]);
+
+        if (config.rows.length > 0 && accessToken) {
+            const shopifyProductId = config.rows[0].shopify_product_id;
+            console.log(`Deep-Deleting product ${shopifyProductId} from Shopify...`);
+
+            // 2. Delete from Shopify API
+            await fetch(`https://${shop}/admin/api/2023-10/products/${shopifyProductId}.json`, {
+                method: 'DELETE',
+                headers: { 'X-Shopify-Access-Token': accessToken }
+            });
+        }
+
+        // 3. Delete from our DB
+        await pool.query('DELETE FROM product_pot_config WHERE id = $1', [id]);
+        await logActivity('PRODUCT_CONFIG_DELETED', `Deleted product config and Shopify product for ID: ${id}`, { config_id: id });
+
         res.json({ success: true });
     } catch (error) {
+        console.error('Delete sync failed:', error);
         res.status(500).json({ error: error.message });
     }
 });
