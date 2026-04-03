@@ -2,20 +2,35 @@ const express = require('express');
 const router = express.Router();
 const pool = require('../db/pool');
 const { logActivity } = require('../services/activityService');
+const { shopify } = require('../index');
 
 // POST /api/products/create - Create a new plant product in Shopify and configure it
 router.post('/create', async (req, res) => {
     const shop = process.env.SHOPIFY_STORE_DOMAIN || 'democms2.myshopify.com';
-    const accessToken = process.env.SHOPIFY_ACCESS_TOKEN;
+    let accessToken = process.env.SHOPIFY_ACCESS_TOKEN;
+
+    // FALLBACK: If no permanent token is in .env, try to find an active session (for local dev)
+    if (!accessToken) {
+        try {
+            const sessions = await shopify.config.sessionStorage.findSessionsByShop(shop);
+            if (sessions && sessions.length > 0) {
+                accessToken = sessions[0].accessToken;
+                console.log("Using fallover OAuth session token for local development.");
+            }
+        } catch (e) {
+            console.error("Session lookup failed:", e.message);
+        }
+    }
 
     if (!accessToken) {
-        return res.status(500).json({ error: 'SHOPIFY_ACCESS_TOKEN not configured in environment variables.' });
+        return res.status(500).json({ error: 'No access token found. Add SHOPIFY_ACCESS_TOKEN to .env or log in through /api/auth.' });
     }
 
     const { title, description, variants } = req.body;
 
     try {
-        // Use direct fetch to Shopify REST API - more reliable than SDK session objects
+        console.log(`Attempting to create product "${title}" on ${shop}...`);
+
         const shopifyRes = await fetch(`https://${shop}/admin/api/2023-10/products.json`, {
             method: 'POST',
             headers: {
@@ -33,15 +48,15 @@ router.post('/create', async (req, res) => {
 
         if (!shopifyRes.ok) {
             const errText = await shopifyRes.text();
-            console.error('Shopify API error:', errText);
-            return res.status(shopifyRes.status).json({ error: `Shopify API error: ${errText}` });
+            console.error('Shopify API Error Response:', errText);
+            return res.status(shopifyRes.status).json({ error: `Shopify rejected creation: ${errText}` });
         }
 
         const shopifyData = await shopifyRes.json();
         const shopifyProduct = shopifyData.product;
         const shopifyProductId = shopifyProduct.id;
 
-        // Save to your DB
+        // Save configuration to Database
         const clientDb = await pool.connect();
         try {
             await clientDb.query('BEGIN');
@@ -58,9 +73,11 @@ router.post('/create', async (req, res) => {
                 );
             }
             await clientDb.query('COMMIT');
+            console.log("Product successfully configured in Database.");
             await logActivity('PRODUCT_CREATED', `Created and configured product: ${title}`, { shopify_product_id: shopifyProductId });
         } catch (e) {
             await clientDb.query('ROLLBACK');
+            console.error("Database Save Error:", e.message);
             throw e;
         } finally {
             clientDb.release();
@@ -68,7 +85,7 @@ router.post('/create', async (req, res) => {
 
         res.json({ success: true, product: shopifyProduct });
     } catch (error) {
-        console.error('Product creation failed:', error);
+        console.error('SERVER FATAL ERROR:', error);
         res.status(500).json({ error: error.message || 'Internal Server Error' });
     }
 });
