@@ -1,5 +1,5 @@
 import React from 'react';
-import { Page, Layout, Card, Text, BlockStack, List } from '@shopify/polaris';
+import { Page, Layout, Card, Text, BlockStack, List, Badge, InlineStack } from '@shopify/polaris';
 
 function Settings() {
     return (

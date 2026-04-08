@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Page, Layout, Card, Text, BlockStack, InlineStack, Badge, SkeletonBodyText } from '@shopify/polaris';
+import { Page, Layout, Card, Text, BlockStack, InlineStack, Badge, SkeletonBodyText, Button } from '@shopify/polaris';
 
 function Dashboard() {
     const [stats, setStats] = useState(null);
