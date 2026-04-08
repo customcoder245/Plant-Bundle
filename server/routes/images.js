@@ -20,14 +20,45 @@ router.get('/product/:productConfigId', async (req, res) => {
 
 router.post('/', async (req, res) => {
     const { product_config_id, pot_color_id, size, image_url } = req.body;
+    const shop = process.env.SHOPIFY_STORE_DOMAIN;
+    const accessToken = process.env.ADMIN_API || process.env.SHOPIFY_ACCESS_TOKEN;
+
     try {
+        // 1. Save to local database
         const result = await pool.query(
             `INSERT INTO composite_images (product_config_id, pot_color_id, size, image_url) VALUES ($1, $2, $3, $4) ON CONFLICT DO NOTHING RETURNING *`,
             [product_config_id, pot_color_id, size, image_url]
         );
-        await logActivity('IMAGE_UPLOADED', `Uploaded composite image for product ${product_config_id}`, { product_config_id, pot_color_id, size });
+
+        // 2. Sync to Shopify if we have a token
+        if (accessToken && shop) {
+            // Find the Shopify Product ID for this config
+            const configResult = await pool.query('SELECT shopify_product_id FROM product_pot_config WHERE id = $1', [product_config_id]);
+
+            if (configResult.rows.length > 0) {
+                const shopifyProductId = configResult.rows[0].shopify_product_id;
+                console.log(`Syncing new image for Product ${shopifyProductId} to Shopify...`);
+
+                await fetch(`https://${shop}/admin/api/2023-10/products/${shopifyProductId}/images.json`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-Shopify-Access-Token': accessToken
+                    },
+                    body: JSON.stringify({
+                        image: {
+                            src: image_url,
+                            alt: `Composite view: ${size} size`
+                        }
+                    })
+                });
+            }
+        }
+
+        await logActivity('IMAGE_UPLOADED', `Uploaded and synced composite image for product ${product_config_id}`, { product_config_id, pot_color_id, size });
         res.json(result.rows[0]);
     } catch (error) {
+        console.error('Image sync error:', error);
         res.status(500).json({ error: error.message });
     }
 });
