@@ -41,20 +41,21 @@ function AddPlantProduct() {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(formData),
             });
+            const data = await res.json();
+
             if (res.ok) {
                 alert('Product created and configured successfully!');
-                // Redirect or reset form
                 setFormData({
                     title: '',
                     description: '',
                     variants: [{ title: 'Small', price: '50.00', pot_size: 'Small' }],
                 });
             } else {
-                throw new Error('Failed to create product');
+                throw new Error(data.error || 'Failed to create product');
             }
         } catch (error) {
             console.error('Error:', error);
-            alert('Error creating product');
+            alert(`Error: ${error.message}`);
         } finally {
             setSaving(false);
         }

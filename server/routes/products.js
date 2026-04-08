@@ -6,8 +6,8 @@ const { shopify } = require('../index');
 
 // POST /api/products/create - Create a new plant product in Shopify and configure it
 router.post('/create', async (req, res) => {
-    const shop = process.env.SHOPIFY_STORE_DOMAIN || 'democms2.myshopify.com';
-    let accessToken = process.env.SHOPIFY_ACCESS_TOKEN;
+    const shop = process.env.SHOPIFY_STORE_DOMAIN;
+    let accessToken = process.env.ADMIN_API || process.env.SHOPIFY_ACCESS_TOKEN;
 
     // FALLBACK: If no permanent token is in .env, try to find an active session (for local dev)
     if (!accessToken) {
@@ -92,8 +92,8 @@ router.post('/create', async (req, res) => {
 
 // GET /api/products - Get all products from Shopify for configuration
 router.get('/', async (req, res) => {
-    const shop = process.env.SHOPIFY_STORE_DOMAIN || 'democms2.myshopify.com';
-    const accessToken = process.env.SHOPIFY_ACCESS_TOKEN;
+    const shop = process.env.SHOPIFY_STORE_DOMAIN;
+    const accessToken = process.env.ADMIN_API || process.env.SHOPIFY_ACCESS_TOKEN;
 
     if (!accessToken) {
         // Fallback for local dev session

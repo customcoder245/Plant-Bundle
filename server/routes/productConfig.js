@@ -62,8 +62,8 @@ router.post('/', async (req, res) => {
 
 router.put('/:id/toggle', async (req, res) => {
     const { id } = req.params;
-    const shop = process.env.SHOPIFY_STORE_DOMAIN || 'democms2.myshopify.com';
-    const accessToken = process.env.SHOPIFY_ACCESS_TOKEN;
+    const shop = process.env.SHOPIFY_STORE_DOMAIN;
+    const accessToken = process.env.ADMIN_API || process.env.SHOPIFY_ACCESS_TOKEN;
 
     try {
         // 1. Toggle DB state first
@@ -105,8 +105,8 @@ router.put('/:id/toggle', async (req, res) => {
 
 router.delete('/:id', async (req, res) => {
     const { id } = req.params;
-    const shop = process.env.SHOPIFY_STORE_DOMAIN || 'democms2.myshopify.com';
-    const accessToken = process.env.SHOPIFY_ACCESS_TOKEN;
+    const shop = process.env.SHOPIFY_STORE_DOMAIN;
+    const accessToken = process.env.ADMIN_API || process.env.SHOPIFY_ACCESS_TOKEN;
 
     try {
         // 1. Find the Shopify ID from our DB first

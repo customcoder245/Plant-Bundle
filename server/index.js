@@ -2,6 +2,7 @@ require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const path = require('path');
+const pool = require('./db/pool');
 
 // Fix: The official package is @shopify/shopify-api
 const { shopifyApi, ApiVersion } = require('@shopify/shopify-api');
@@ -22,7 +23,7 @@ const shopify = shopifyApp({
     apiKey: process.env.SHOPIFY_API_KEY,
     apiSecretKey: process.env.SHOPIFY_API_SECRET,
     scopes: process.env.SHOPIFY_SCOPES ? process.env.SHOPIFY_SCOPES.split(',') : [],
-    hostName: process.env.APP_URL ? process.env.APP_URL.replace(/https?:\/\//, '') : '',
+    hostName: (process.env.RAILWAY_PUBLIC_DOMAIN || (process.env.APP_URL ? process.env.APP_URL.replace(/https?:\/\//, '') : '')),
     apiVersion: ApiVersion.October23,
     isEmbeddedApp: true,
   },
@@ -84,14 +85,15 @@ app.use((req, res, next) => {
   next();
 });
 
+// Health check (must be before the catch-all)
+app.get('/health', (req, res) => {
+  res.json({ status: 'ok', timestamp: new Date().toISOString() });
+});
+
 // Always serve the React frontend
 app.use(express.static(path.join(__dirname, '../client/dist')));
 app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, '../client/dist/index.html'));
-});
-
-app.get('/health', (req, res) => {
-  res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
 

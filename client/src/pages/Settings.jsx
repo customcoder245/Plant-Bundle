@@ -5,28 +5,41 @@ function Settings() {
     return (
         <Page title="Settings">
             <Layout>
-                <Layout.Section><Card><BlockStack gap="400">
-                    <Text variant="headingMd">Webhook Configuration</Text>
-                    <Text>Register these webhooks in your Shopify admin:</Text>
-                    <List>
-                        <List.Item><strong>orders/create</strong> - {window.location.origin}/webhooks/orders/create</List.Item>
-                        <List.Item><strong>orders/cancelled</strong> - {window.location.origin}/webhooks/orders/cancelled</List.Item>
-                        <List.Item><strong>orders/refunded</strong> - {window.location.origin}/webhooks/orders/refunded</List.Item>
-                    </List>
-                </BlockStack></Card></Layout.Section>
-                <Layout.Section><Card><BlockStack gap="400">
-                    <Text variant="headingMd">Theme Integration</Text>
-                    <Text>Add the pot selector to your product pages using the theme extension code.</Text>
-                </BlockStack></Card></Layout.Section>
-                <Layout.Section><Card><BlockStack gap="400">
-                    <Text variant="headingMd">API Endpoints</Text>
-                    <List>
-                        <List.Item>GET /api/pots/colors - List all pot colors</List.Item>
-                        <List.Item>GET /api/inventory - List all inventory</List.Item>
-                        <List.Item>GET /api/product-config/:shopifyProductId - Get product config</List.Item>
-                        <List.Item>GET /api/images/product/:configId - Get composite images</List.Item>
-                    </List>
-                </BlockStack></Card></Layout.Section>
+                <Layout.Section>
+                    <Card>
+                        <BlockStack gap="400">
+                            <Text variant="headingMd" as="h2">System Configuration</Text>
+                            <Text as="p">Your app is currently using the <strong>Admin API Token</strong> from your environment variables for Shopify communication.</Text>
+                            <InlineStack gap="200">
+                                <Badge tone="success">Connected to API</Badge>
+                                <Badge tone="info">Railway Environment</Badge>
+                            </InlineStack>
+                        </BlockStack>
+                    </Card>
+                </Layout.Section>
+
+                <Layout.Section>
+                    <Card>
+                        <BlockStack gap="400">
+                            <Text variant="headingMd" as="h2">Webhook Configuration</Text>
+                            <Text as="p">If you are moving from local development to Railway, these webhooks should be updated in your Shopify App setup:</Text>
+                            <List>
+                                <List.Item>Orders Create: <code>/api/webhooks/orders/create</code></List.Item>
+                                <List.Item>Orders Cancelled: <code>/api/webhooks/orders/cancelled</code></List.Item>
+                            </List>
+                        </BlockStack>
+                    </Card>
+                </Layout.Section>
+
+                <Layout.Section>
+                    <Card>
+                        <BlockStack gap="400">
+                            <Text variant="headingMd" as="h2">Database Status</Text>
+                            <Text as="p">Database: <strong>PostgreSQL (Neon)</strong></Text>
+                            <Text as="p">Migrations: <strong>Automated on startup</strong></Text>
+                        </BlockStack>
+                    </Card>
+                </Layout.Section>
             </Layout>
         </Page>
     );
