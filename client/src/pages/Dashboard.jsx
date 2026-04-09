@@ -1,21 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import {
-    Page,
-    Layout,
-    Text,
-    BlockStack,
-    InlineStack,
-    Badge,
-    SkeletonBodyText,
-    Banner,
-    CalloutCard,
-    Grid,
-    Box,
-    Divider,
-    EmptyState,
-    List,
-    Card
-} from '@shopify/polaris';
+import { Page, Layout, Text, BlockStack, InlineStack, Badge, SkeletonBodyText, Banner } from '@shopify/polaris';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
     Palette,
@@ -24,35 +8,44 @@ import {
     PlusCircle,
     ArrowRight,
     History,
+    AlertCircle,
     TrendingUp,
-    Box as BoxIcon
+    Box
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
 const StatCard = ({ title, value, label, icon: Icon, color, delay }) => (
-    <Grid.Cell columnSpan={{ xs: 6, sm: 6, md: 4, lg: 4, xl: 4 }}>
-        <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay }}
-            className="premium-card"
-        >
-            <BlockStack gap="400">
-                <div className="stat-icon-wrapper" style={{ backgroundColor: `${color}15`, color: color }}>
-                    <Icon size={24} />
-                </div>
-                <BlockStack gap="100">
-                    <Text variant="headingSm" as="h3" tone="subdued">{title}</Text>
-                    <div className="stat-value gradient-text">{value}</div>
-                    <Text variant="bodySm" tone="subdued">{label}</Text>
-                </BlockStack>
-            </BlockStack>
+    <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5, delay }}
+        className="premium-card"
+    >
+        <div className="stat-icon-wrapper" style={{ backgroundColor: `${color}15`, color: color }}>
+            <Icon size={24} />
+        </div>
+        <Text variant="headingSm" as="h3" tone="subdued">{title}</Text>
+        <div className="stat-value gradient-text">{value}</div>
+        <Text variant="bodySm" tone="subdued">{label}</Text>
 
-            <div style={{ position: 'absolute', bottom: '-10px', right: '-10px', opacity: 0.05, transform: 'rotate(-15deg)' }}>
-                <Icon size={80} />
-            </div>
-        </motion.div>
-    </Grid.Cell>
+        <div style={{ position: 'absolute', bottom: '-10px', right: '-10px', opacity: 0.05, transform: 'rotate(-15deg)' }}>
+            <Icon size={80} />
+        </div>
+    </motion.div>
+);
+
+const QuickAction = ({ title, icon: Icon, to, delay, primary }) => (
+    <motion.div
+        initial={{ opacity: 0, x: -20 }}
+        animate={{ opacity: 1, x: 0 }}
+        transition={{ duration: 0.4, delay }}
+    >
+        <Link to={to} className="quick-action-btn" style={primary ? { background: 'var(--primary)', color: 'white' } : {}}>
+            <Icon size={20} />
+            <span style={{ flex: 1 }}>{title}</span>
+            <ArrowRight size={16} />
+        </Link>
+    </motion.div>
 );
 
 function Dashboard() {
@@ -96,27 +89,23 @@ function Dashboard() {
     if (loading) return (
         <Page title="Dashboard">
             <Layout>
-                <Layout.Section><SkeletonBodyText lines={15} /></Layout.Section>
+                <Layout.Section><SkeletonBodyText lines={10} /></Layout.Section>
             </Layout>
         </Page>
     );
 
     return (
         <Page fullWidth>
-            <BlockStack gap="600">
+            <div className="dashboard-container">
                 <motion.div
-                    initial={{ opacity: 0, x: -20 }}
-                    animate={{ opacity: 1, x: 0 }}
+                    initial={{ opacity: 0, y: -20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    style={{ marginBottom: '2rem' }}
                 >
-                    <Box paddingBlockEnd="400">
-                        <InlineStack align="space-between" blockAlign="center">
-                            <BlockStack gap="100">
-                                <Text variant="heading2xl" as="h1">Dashboard Overview</Text>
-                                <Text variant="bodyLg" tone="subdued">Real-time insights into your Plant + Pot bundle performance.</Text>
-                            </BlockStack>
-                            <Badge tone="success">System Online</Badge>
-                        </InlineStack>
-                    </Box>
+                    <BlockStack gap="200">
+                        <Text variant="heading2xl" as="h1">Welcome back!</Text>
+                        <Text variant="bodyLg" tone="subdued">Manage your Plant + Pot bundles and inventory with ease.</Text>
+                    </BlockStack>
                 </motion.div>
 
                 <AnimatePresence>
@@ -125,143 +114,124 @@ function Dashboard() {
                             initial={{ opacity: 0, height: 0 }}
                             animate={{ opacity: 1, height: 'auto' }}
                             exit={{ opacity: 0, height: 0 }}
+                            style={{ marginBottom: '2rem' }}
                         >
-                            <Banner title="Sync Issue Detected" tone="critical" onDismiss={() => setError(false)}>
-                                <p>We're having trouble reaching the local database. Please ensure your server is running.</p>
+                            <Banner title="Connection Warning" tone="warning" onDismiss={() => setError(false)}>
+                                <p>There was an issue connecting to the backend. Please check your Shopify API credentials in the Settings.</p>
                             </Banner>
                         </motion.div>
                     )}
                 </AnimatePresence>
 
-                <motion.div
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.1 }}
-                >
-                    <CalloutCard
-                        title="Start building your first bundle"
-                        illustration="https://cdn.shopify.com/s/assets/admin/checkout/settings-customize-checkout-concept-f139051d05e3751897c7b32d43f3d745a76da7d1ca86bc9ad25091763ef4991c.svg"
-                        primaryAction={{
-                            content: 'Create Bundle',
-                            url: '/add-product',
-                        }}
-                    >
-                        <p>Combine any plant with our custom pot colors to increase your average order value.</p>
-                    </CalloutCard>
-                </motion.div>
-
-                <Grid>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '2rem', marginBottom: '3rem' }}>
                     <StatCard
                         title="Available Colors"
                         value={stats?.totalColors || 0}
                         label="Custom pot options"
                         icon={Palette}
                         color="#2b6cb0"
+                        delay={0.1}
+                    />
+                    <StatCard
+                        title="Total Pot Inventory"
+                        value={stats?.totalPots || 0}
+                        label={stats?.lowStockItems > 0 ? `${stats.lowStockItems} low stock alerts` : "Stock levels healthy"}
+                        icon={Box}
+                        color={stats?.lowStockItems > 0 ? "#c05621" : "#2f855a"}
                         delay={0.2}
                     />
                     <StatCard
-                        title="Pot Inventory"
-                        value={stats?.totalPots || 0}
-                        label={stats?.lowStockItems > 0 ? `${stats.lowStockItems} low stock alerts` : "Stock levels healthy"}
-                        icon={BoxIcon}
-                        color={stats?.lowStockItems > 0 ? "#c05621" : "#2f855a"}
-                        delay={0.3}
-                    />
-                    <StatCard
-                        title="Active Bundles"
+                        title="Configured Bundles"
                         value={stats?.configuredProducts || 0}
-                        label="Configured in store"
+                        label="Active store pairings"
                         icon={Package}
                         color="#6b46c1"
-                        delay={0.4}
+                        delay={0.3}
                     />
-                </Grid>
+                </div>
 
-                <Layout>
-                    <Layout.Section variant="oneHalf">
-                        <motion.div
-                            initial={{ opacity: 0, scale: 0.98 }}
-                            animate={{ opacity: 1, scale: 1 }}
-                            transition={{ delay: 0.5 }}
-                        >
-                            <Card>
-                                <Box padding="500">
-                                    <BlockStack gap="400">
-                                        <InlineStack align="space-between">
-                                            <InlineStack gap="200">
-                                                <History size={20} className="gradient-text" />
-                                                <Text variant="headingMd" as="h2">Recent Activity</Text>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(400px, 1fr))', gap: '3rem' }}>
+                    <motion.div
+                        initial={{ opacity: 0, scale: 0.95 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        transition={{ duration: 0.5, delay: 0.4 }}
+                        className="premium-card"
+                    >
+                        <BlockStack gap="500">
+                            <InlineStack align="space-between">
+                                <InlineStack gap="200">
+                                    <History size={20} className="gradient-text" />
+                                    <Text variant="headingMd" as="h2">Recent Activity</Text>
+                                </InlineStack>
+                                <TrendingUp size={16} tone="subdued" />
+                            </InlineStack>
+
+                            <div className="activity-list">
+                                {stats?.recentActivity?.slice(0, 5).map((item, index) => (
+                                    <div key={index} className="timeline-item">
+                                        <div className="timeline-point" />
+                                        <div style={{ flex: 1 }}>
+                                            <InlineStack align="space-between">
+                                                <Text variant="bodyMd" fontWeight="semibold">{item.event_type.replace(/_/g, ' ')}</Text>
+                                                <Badge tone="info">{item.count}</Badge>
                                             </InlineStack>
-                                            <TrendingUp size={16} tone="subdued" />
-                                        </InlineStack>
+                                            <Text variant="bodySm" tone="subdued">Generated from recent store events</Text>
+                                        </div>
+                                    </div>
+                                ))}
+                                {(!stats?.recentActivity || stats.recentActivity.length === 0) && (
+                                    <div style={{ padding: '2rem', textAlign: 'center' }}>
+                                        <AlertCircle size={32} style={{ margin: '0 auto 1rem', opacity: 0.2 }} />
+                                        <Text tone="subdued">No recent activity recorded.</Text>
+                                    </div>
+                                )}
+                            </div>
+                        </BlockStack>
+                    </motion.div>
 
-                                        <Divider />
+                    <motion.div
+                        initial={{ opacity: 0, scale: 0.95 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        transition={{ duration: 0.5, delay: 0.5 }}
+                        className="premium-card"
+                    >
+                        <BlockStack gap="500">
+                            <InlineStack gap="200">
+                                <Settings size={20} className="gradient-text" />
+                                <Text variant="headingMd" as="h2">Quick Actions</Text>
+                            </InlineStack>
 
-                                        {(!stats?.recentActivity || stats.recentActivity.length === 0) ? (
-                                            <EmptyState
-                                                heading="No activity yet"
-                                                image="https://cdn.shopify.com/s/files/1/0262/4071/2726/files/emptystate-files.png"
-                                            >
-                                                <p>Your store activity will appear here once customers start browsing your bundles.</p>
-                                            </EmptyState>
-                                        ) : (
-                                            <List type="bullet">
-                                                {stats.recentActivity.slice(0, 5).map((item, index) => (
-                                                    <List.Item key={index}>
-                                                        <InlineStack align="space-between">
-                                                            <Text fontWeight="semibold">{item.event_type.replace(/_/g, ' ')}</Text>
-                                                            <Badge tone="info">{item.count} events</Badge>
-                                                        </InlineStack>
-                                                    </List.Item>
-                                                ))}
-                                            </List>
-                                        )}
-                                    </BlockStack>
-                                </Box>
-                            </Card>
-                        </motion.div>
-                    </Layout.Section>
-
-                    <Layout.Section variant="oneHalf">
-                        <motion.div
-                            initial={{ opacity: 0, scale: 0.98 }}
-                            animate={{ opacity: 1, scale: 1 }}
-                            transition={{ delay: 0.6 }}
-                        >
-                            <Card>
-                                <Box padding="500">
-                                    <BlockStack gap="400">
-                                        <InlineStack gap="200">
-                                            <Settings size={20} className="gradient-text" />
-                                            <Text variant="headingMd" as="h2">Quick Management</Text>
-                                        </InlineStack>
-
-                                        <Divider />
-
-                                        <BlockStack gap="300">
-                                            <Link to="/inventory" className="quick-action-btn">
-                                                <BoxIcon size={20} />
-                                                <span style={{ flex: 1 }}>Update Pot Inventory</span>
-                                                <ArrowRight size={16} />
-                                            </Link>
-                                            <Link to="/products" className="quick-action-btn">
-                                                <Package size={20} />
-                                                <span style={{ flex: 1 }}>Review Configurations</span>
-                                                <ArrowRight size={16} />
-                                            </Link>
-                                            <Link to="/settings" className="quick-action-btn">
-                                                <Settings size={20} />
-                                                <span style={{ flex: 1 }}>App Settings</span>
-                                                <ArrowRight size={16} />
-                                            </Link>
-                                        </BlockStack>
-                                    </BlockStack>
-                                </Box>
-                            </Card>
-                        </motion.div>
-                    </Layout.Section>
-                </Layout>
-            </BlockStack>
+                            <BlockStack gap="300">
+                                <QuickAction
+                                    title="Add New Bundle"
+                                    icon={PlusCircle}
+                                    to="/add-product"
+                                    primary
+                                    delay={0.6}
+                                />
+                                <QuickAction
+                                    title="Manage Inventory"
+                                    icon={Box}
+                                    to="/inventory"
+                                    delay={0.7}
+                                />
+                                <QuickAction
+                                    title="View Configurations"
+                                    icon={Package}
+                                    to="/products"
+                                    delay={0.8}
+                                />
+                                <QuickAction
+                                    title="App Settings"
+                                    icon={Settings}
+                                    to="/settings"
+                                    delay={0.9}
+                                />
+                            </BlockStack>
+                        </BlockStack>
+                    </motion.div>
+                </div>
+            </div>
         </Page>
     );
 }
