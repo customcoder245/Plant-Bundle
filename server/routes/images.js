@@ -22,7 +22,7 @@ router.get('/product/:productConfigId', async (req, res) => {
     }
 });
 
-// POST /api/images - Handle real file upload
+// POST /api/images - Handle real file upload + Shopify Sync (Linked to Variants)
 router.post('/', upload.single('image'), async (req, res) => {
     const { product_config_id, pot_color_id, size } = req.body;
     const shop = process.env.SHOPIFY_STORE_DOMAIN;
@@ -33,42 +33,61 @@ router.post('/', upload.single('image'), async (req, res) => {
     try {
         let finalImageUrl = '';
 
-        // 1. Sync to Shopify if possible
-        if (accessToken && shop) {
-            const configResult = await pool.query('SELECT shopify_product_id FROM product_pot_config WHERE id = $1', [product_config_id]);
+        // 1. Find the Shopify IDs from our DB
+        const configResult = await pool.query('SELECT shopify_product_id FROM product_pot_config WHERE id = $1', [product_config_id]);
 
-            if (configResult.rows.length > 0) {
-                const shopifyProductId = configResult.rows[0].shopify_product_id;
-                const base64Image = req.file.buffer.toString('base64');
+        if (configResult.rows.length === 0) throw new Error('Product configuration not found');
+        const shopifyProductId = configResult.rows[0].shopify_product_id;
 
-                console.log(`Uploading file as attachment to Shopify Product ${shopifyProductId}...`);
+        // 2. Identify which variants to link this image to
+        let targetVariantIds = [];
 
-                const shopifyRes = await fetch(`https://${shop}/admin/api/2023-10/products/${shopifyProductId}/images.json`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-Shopify-Access-Token': accessToken
-                    },
-                    body: JSON.stringify({
-                        image: {
-                            attachment: base64Image,
-                            filename: req.file.originalname,
-                            alt: `Composite view: ${size} size`
-                        }
-                    })
-                });
-
-                if (shopifyRes.ok) {
-                    const shopifyData = await shopifyRes.json();
-                    finalImageUrl = shopifyData.image.src;
-                } else {
-                    const errText = await shopifyRes.text();
-                    throw new Error(`Shopify upload failed: ${errText}`);
-                }
+        if (size.toLowerCase() === 'all') {
+            // Fetch all variants for this product config
+            const allVariants = await pool.query('SELECT shopify_variant_id FROM size_mappings WHERE product_config_id = $1', [product_config_id]);
+            targetVariantIds = allVariants.rows.map(v => v.shopify_variant_id);
+        } else {
+            // Find a specific variant ID by matching the pot_size
+            const specificVariant = await pool.query(
+                'SELECT shopify_variant_id FROM size_mappings WHERE product_config_id = $1 AND pot_size = $2',
+                [product_config_id, size]
+            );
+            if (specificVariant.rows.length > 0) {
+                targetVariantIds = [specificVariant.rows[0].shopify_variant_id];
             }
         }
 
-        // 2. Save the Shopify-hosted URL to our local database
+        // 3. Sync to Shopify with Variant Association
+        if (accessToken && shop) {
+            const base64Image = req.file.buffer.toString('base64');
+            console.log(`Uploading file for Product ${shopifyProductId} (Variants: ${targetVariantIds.join(',') || 'none'})...`);
+
+            const shopifyRes = await fetch(`https://${shop}/admin/api/2023-10/products/${shopifyProductId}/images.json`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-Shopify-Access-Token': accessToken
+                },
+                body: JSON.stringify({
+                    image: {
+                        attachment: base64Image,
+                        filename: req.file.originalname,
+                        alt: `Composite view: ${size}`,
+                        variant_ids: targetVariantIds // THIS binds the image to the Shopify Variant UI
+                    }
+                })
+            });
+
+            if (shopifyRes.ok) {
+                const shopifyData = await shopifyRes.json();
+                finalImageUrl = shopifyData.image.src;
+            } else {
+                const errText = await shopifyRes.text();
+                throw new Error(`Shopify upload failed: ${errText}`);
+            }
+        }
+
+        // 4. Save the Shopify-hosted URL to our local database
         if (!finalImageUrl) throw new Error('Failed to get URL from Shopify after upload');
 
         const result = await pool.query(
@@ -76,11 +95,11 @@ router.post('/', upload.single('image'), async (req, res) => {
             [product_config_id, pot_color_id, size, finalImageUrl]
         );
 
-        await logActivity('IMAGE_UPLOADED', `Uploaded and synced real file for product ${product_config_id}`, { product_config_id, pot_color_id });
+        await logActivity('IMAGE_UPLOADED_SYNCED', `Uploaded and linked image to variants [${targetVariantIds.join(', ')}]`, { product_config_id, size });
         res.json(result.rows[0]);
 
     } catch (error) {
-        console.error('Image upload/sync error:', error);
+        console.error('Image processing error:', error);
         res.status(500).json({ error: error.message });
     }
 });
