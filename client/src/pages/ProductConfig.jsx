@@ -6,7 +6,6 @@ import {
     Box, Divider
 } from '@shopify/polaris';
 import { RefreshIcon, SearchIcon, CheckCircleIcon, SettingsIcon } from '@shopify/polaris-icons';
-import { Package } from 'lucide-react';
 
 function ProductConfig() {
     const [configs, setConfigs] = useState([]);
@@ -81,16 +80,16 @@ function ProductConfig() {
 
     const handleConfigSelect = (product) => {
         // Smart mapping prediction
-        const initialMappings = product.variants.map(v => {
-            const title = v.title.toLowerCase();
+        const initialMappings = (product.variants || []).map(v => {
+            const title = (v.title || '').toLowerCase();
             let predictedSize = 'Medium';
             if (title.includes('2') || title.includes('small') || title.includes('4')) predictedSize = 'Small';
             if (title.includes('6') || title.includes('8') || title.includes('standard')) predictedSize = 'Medium';
             if (title.includes('10') || title.includes('large') || title.includes('gal')) predictedSize = 'Large';
 
             return {
-                shopify_variant_id: v.id.toString(),
-                variant_title: v.title,
+                shopify_variant_id: v.id?.toString() || '',
+                variant_title: v.title || 'Unknown',
                 pot_size: predictedSize
             };
         });
@@ -125,8 +124,8 @@ function ProductConfig() {
 
     const configuredIds = configs.map(c => c.shopify_product_id.toString());
     const unconfiguredProducts = shopifyProducts.filter(p =>
-        !configuredIds.includes(p.id.toString()) &&
-        p.title.toLowerCase().includes(searchQuery.toLowerCase())
+        !configuredIds.includes(p.id?.toString()) &&
+        (p.title || '').toLowerCase().includes(searchQuery.toLowerCase())
     );
 
     if (loading) return <Page title="Manage Bundles"><SkeletonBodyText lines={20} /></Page>;
@@ -161,7 +160,7 @@ function ProductConfig() {
                                                 <Text variant="bodyMd" fontWeight="bold">{config.product_title}</Text>
                                                 <InlineStack gap="200">
                                                     <Badge tone="info" size="small">${config.no_pot_discount} Discount</Badge>
-                                                    <Text tone="subdued" variant="bodySm">{config.size_mappings.length} Sizes mapped</Text>
+                                                    <Text tone="subdued" variant="bodySm">{(config.size_mappings || []).length} Sizes mapped</Text>
                                                 </InlineStack>
                                             </BlockStack>
                                         </InlineStack>
@@ -224,7 +223,7 @@ function ProductConfig() {
                                             <Thumbnail source={product.image?.src || 'https://cdn.shopify.com/s/files/1/0262/4071/2726/files/emptystate-files.png'} alt={product.title} size="medium" />
                                             <BlockStack>
                                                 <Text variant="bodyMd" fontWeight="bold">{product.title}</Text>
-                                                <Text tone="subdued" variant="bodySm">{product.variants.length} variants available</Text>
+                                                <Text tone="subdued" variant="bodySm">{(product.variants || []).length} variants available</Text>
                                             </BlockStack>
                                         </InlineStack>
                                         <Button variant="primary" onClick={() => handleConfigSelect(product)}>Configure</Button>
