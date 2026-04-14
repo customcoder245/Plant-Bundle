@@ -5,7 +5,8 @@ import {
     Banner, BlockStack, Box, Divider, EmptyState,
     SkeletonBodyText
 } from '@shopify/polaris';
-import { Box as BoxIcon, AlertTriangle, Save, RefreshCw, Search } from 'lucide-react';
+import { SaveIcon, RefreshIcon, SearchIcon } from '@shopify/polaris-icons';
+import { Box as BoxIcon, AlertTriangle } from 'lucide-react';
 
 function Inventory() {
     const [inventory, setInventory] = useState([]);
@@ -79,9 +80,9 @@ function Inventory() {
                 onAction: handleSaveAll,
                 loading: saving,
                 disabled: !hasChanges,
-                icon: Save
+                icon: SaveIcon
             }}
-            secondaryActions={[{ content: 'Refresh', onAction: fetchInventory, icon: RefreshCw }]}
+            secondaryActions={[{ content: 'Refresh', onAction: fetchInventory, icon: RefreshIcon }]}
         >
             <BlockStack gap="500">
                 {lowStockItems.length > 0 && (
@@ -104,7 +105,7 @@ function Inventory() {
                             </InlineStack>
 
                             <TextField
-                                prefix={<Search size={18} />}
+                                prefix={<SearchIcon style={{ width: 18 }} />}
                                 placeholder="Filter by color or size..."
                                 value={queryValue}
                                 onChange={setQueryValue}
