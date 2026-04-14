@@ -5,7 +5,8 @@ import {
     Badge, Text, BlockStack, Box, Divider, EmptyState,
     Thumbnail, Banner
 } from '@shopify/polaris';
-import { Palette, Plus, Edit3, Trash2, GripVertical, CheckCircle2 } from 'lucide-react';
+import { PlusIcon, EditIcon, DeleteIcon, DragHandleIcon } from '@shopify/polaris-icons';
+import { Palette, CheckCircle2 } from 'lucide-react';
 
 function PotColors() {
     const [colors, setColors] = useState([]);
@@ -74,7 +75,7 @@ function PotColors() {
             title="Pot Colors"
             primaryAction={{
                 content: 'Add Brand Color',
-                icon: Plus,
+                icon: PlusIcon,
                 onAction: () => {
                     setEditingColor(null);
                     setFormData({ name: '', hex_code: '#8fb149', display_order: colors.length });
@@ -105,7 +106,7 @@ function PotColors() {
                                 <InlineStack align="space-between" blockAlign="center">
                                     <InlineStack gap="400" blockAlign="center">
                                         <div style={{ padding: '0 8px', color: '#ccc' }}>
-                                            <GripVertical size={20} />
+                                            <DragHandleIcon />
                                         </div>
                                         <div style={{
                                             width: 44, height: 44,
@@ -124,8 +125,8 @@ function PotColors() {
                                         <Badge tone={color.is_active ? 'success' : 'info'}>
                                             {color.is_active ? 'Visible' : 'Hidden'}
                                         </Badge>
-                                        <Button icon={Edit3} onClick={() => openEditModal(color)}>Edit</Button>
-                                        <Button icon={Trash2} tone="critical" onClick={() => handleDelete(color.id)}>Delete</Button>
+                                        <Button icon={EditIcon} onClick={() => openEditModal(color)}>Edit</Button>
+                                        <Button icon={DeleteIcon} tone="critical" onClick={() => handleDelete(color.id)}>Delete</Button>
                                     </InlineStack>
                                 </InlineStack>
                             </ResourceItem>

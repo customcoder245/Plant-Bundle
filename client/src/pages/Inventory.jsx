@@ -58,13 +58,13 @@ function Inventory() {
         }
     };
 
-    const lowStockItems = inventory.filter(i => i.is_low_stock);
+    const lowStockItems = Array.isArray(inventory) ? inventory.filter(i => i.is_low_stock) : [];
     const hasChanges = Object.keys(editedQuantities).length > 0;
 
-    const filteredInventory = inventory.filter(item =>
+    const filteredInventory = Array.isArray(inventory) ? inventory.filter(item =>
         item.color_name.toLowerCase().includes(queryValue.toLowerCase()) ||
         item.size.toLowerCase().includes(queryValue.toLowerCase())
-    );
+    ) : [];
 
     if (loading && inventory.length === 0) return (
         <Page title="Inventory Management">

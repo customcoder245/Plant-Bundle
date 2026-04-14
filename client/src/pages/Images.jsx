@@ -4,7 +4,8 @@ import {
     Thumbnail, Button, Select, EmptyState, Badge,
     Box, Divider, Banner, SkeletonBodyText
 } from '@shopify/polaris';
-import { ImageIcon, Upload, Trash2, Info, Package, Camera } from 'lucide-react';
+import { ImageIcon, UploadIcon, PackageIcon, CameraIcon } from '@shopify/polaris-icons';
+import { Trash2 } from 'lucide-react';
 
 function Images() {
     const [configs, setConfigs] = useState([]);
@@ -107,7 +108,7 @@ function Images() {
                             <Box padding="400">
                                 <BlockStack gap="400">
                                     <InlineStack gap="200" align="start" blockAlign="center">
-                                        <Package size={20} color="#636363" />
+                                        <PackageIcon style={{ width: 20 }} />
                                         <Text variant="headingMd">1. Select Product to Manage</Text>
                                     </InlineStack>
                                     <Select
@@ -125,7 +126,7 @@ function Images() {
                             <Box padding="400">
                                 <BlockStack gap="400">
                                     <InlineStack gap="200" align="start" blockAlign="center">
-                                        <Upload size={20} color="#636363" />
+                                        <UploadIcon style={{ width: 20 }} />
                                         <Text variant="headingMd">2. Upload New Composite</Text>
                                     </InlineStack>
                                     <InlineStack gap="400" align="end" blockAlign="end">
@@ -146,7 +147,7 @@ function Images() {
                         <Card padding="0">
                             <Box padding="400">
                                 <InlineStack gap="200" align="start" blockAlign="center">
-                                    <Camera size={20} color="#636363" />
+                                    <CameraIcon style={{ width: 20 }} />
                                     <Text variant="headingMd">Live Bundle Visuals</Text>
                                 </InlineStack>
                             </Box>
@@ -154,7 +155,7 @@ function Images() {
                             <Box padding="400">
                                 {images.length === 0 ? (
                                     <div style={{ textAlign: 'center', padding: '40px' }}>
-                                        <ImageIcon size={48} style={{ opacity: 0.1, margin: '0 auto 16px' }} />
+                                        <ImageIcon style={{ width: 48, opacity: 0.1, margin: '0 auto 16px' }} />
                                         <Text tone="subdued">No bundle images uploaded for this product yet.</Text>
                                     </div>
                                 ) : (
@@ -169,7 +170,7 @@ function Images() {
                                                         <Text fontWeight="bold">{img.color_name}</Text>
                                                         <Badge size="small">{img.size}</Badge>
                                                     </BlockStack>
-                                                    <Button icon={Trash2} variant="tertiary" tone="critical" onClick={() => handleDeleteImage(img.id)}>Delete</Button>
+                                                    <Button variant="tertiary" tone="critical" onClick={() => handleDeleteImage(img.id)}>Delete</Button>
                                                 </BlockStack>
                                             </Box>
                                         ))}
@@ -178,22 +179,6 @@ function Images() {
                             </Box>
                         </Card>
                     </BlockStack>
-                </Layout.Section>
-
-                <Layout.Section variant="oneThird">
-                    <Card>
-                        <Box padding="400">
-                            <BlockStack gap="300">
-                                <Text variant="headingSm">Image Syncing</Text>
-                                <Text variant="bodySm" tone="subdued">
-                                    When you upload an image here, it is automatically pushed to the Shopify product and linked to the correct variant IDs.
-                                </Text>
-                                <Banner tone="info" icon={Info}>
-                                    Images tagged as "All" will show for any size that doesn't have a specific photo.
-                                </Banner>
-                            </BlockStack>
-                        </Box>
-                    </Card>
                 </Layout.Section>
             </Layout>
         </Page>

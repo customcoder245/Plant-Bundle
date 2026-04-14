@@ -2,9 +2,10 @@ import React, { useState } from 'react';
 import {
     Page, Layout, Card, FormLayout, TextField, Button,
     InlineStack, Select, BlockStack, Text, Box,
-    Divider, Banner, Badge, Icon
+    Divider, Banner, Badge
 } from '@shopify/polaris';
-import { PlusCircle, Trash2, Info, ChevronRight, PackagePlus } from 'lucide-react';
+import { PlusIcon, DeleteIcon, InfoIcon, ProductIcon } from '@shopify/polaris-icons';
+import { Info } from 'lucide-react';
 
 function AddPlantProduct() {
     const [formData, setFormData] = useState({
@@ -80,18 +81,17 @@ function AddPlantProduct() {
     return (
         <Page
             title="Create New Plant Bundle"
-            backAction={{ content: 'Dashboard', url: '/' }}
             primaryAction={{
                 content: 'Create & Sync to Shopify',
                 onAction: handleSubmit,
                 loading: saving,
-                icon: PackagePlus
+                icon: PlusIcon
             }}
         >
             <Layout>
                 <Layout.Section>
                     <BlockStack gap="500">
-                        <Banner tone="info" icon={Info}>
+                        <Banner tone="info">
                             This tool creates a new product in your Shopify Admin and automatically configures it for pot bundling in this app.
                         </Banner>
 
@@ -162,7 +162,7 @@ function AddPlantProduct() {
                                             </div>
                                             <Button
                                                 tone="critical"
-                                                icon={Trash2}
+                                                icon={DeleteIcon}
                                                 onClick={() => removeVariant(index)}
                                                 disabled={formData.variants.length === 1}
                                             >
@@ -174,7 +174,7 @@ function AddPlantProduct() {
                             ))}
 
                             <Box padding="500">
-                                <Button onClick={addVariant} icon={PlusCircle}>Add Another Size Variant</Button>
+                                <Button onClick={addVariant} icon={PlusIcon}>Add Another Size Variant</Button>
                             </Box>
                         </Card>
                     </BlockStack>
@@ -196,10 +196,6 @@ function AddPlantProduct() {
                                 </BlockStack>
                             </Box>
                         </Card>
-
-                        <Banner tone="success" title="Ready to Launch?">
-                            <p>Clicking "Create & Sync" will make this product live on your store immediately.</p>
-                        </Banner>
                     </BlockStack>
                 </Layout.Section>
             </Layout>

@@ -5,7 +5,8 @@ import {
     InlineStack, EmptyState, Banner, SkeletonBodyText, Thumbnail,
     Box, Divider
 } from '@shopify/polaris';
-import { Package, Search, Settings, CheckCircle2, AlertCircle } from 'lucide-react';
+import { RefreshIcon, SearchIcon, CheckCircleIcon, SettingsIcon } from '@shopify/polaris-icons';
+import { Package } from 'lucide-react';
 
 function ProductConfig() {
     const [configs, setConfigs] = useState([]);
@@ -133,15 +134,13 @@ function ProductConfig() {
     return (
         <Page
             title="Manage Bundles"
-            subtitle="Link plant products to your custom pot database."
-            primaryAction={{ content: 'Sync Shopify Products', onAction: fetchShopifyProducts, loading: syncLoading }}
+            primaryAction={{ content: 'Sync Shopify Products', onAction: fetchShopifyProducts, loading: syncLoading, icon: RefreshIcon }}
         >
             <BlockStack gap="600">
-                {/* ACTIVE CONFIGURATIONS */}
                 <Card>
                     <Box padding="400">
                         <InlineStack gap="200" align="start" blockAlign="center">
-                            <CheckCircle2 size={20} color="#2f855a" />
+                            <CheckCircleIcon style={{ width: 20, color: '#2f855a' }} />
                             <Text variant="headingMd">Configured Products</Text>
                         </InlineStack>
                     </Box>
@@ -157,7 +156,7 @@ function ProductConfig() {
                                 <ResourceItem id={config.id.toString()} verticalAlignment="center">
                                     <InlineStack align="space-between" blockAlign="center">
                                         <InlineStack gap="400" blockAlign="center">
-                                            <Thumbnail source={imageUrl || Package} alt={config.product_title} size="medium" />
+                                            <Thumbnail source={imageUrl || 'https://cdn.shopify.com/s/files/1/0262/4071/2726/files/emptystate-files.png'} alt={config.product_title} size="medium" />
                                             <BlockStack gap="050">
                                                 <Text variant="bodyMd" fontWeight="bold">{config.product_title}</Text>
                                                 <InlineStack gap="200">
@@ -169,7 +168,7 @@ function ProductConfig() {
 
                                         <InlineStack gap="200">
                                             <Badge tone={config.is_enabled ? 'success' : 'attention'}>
-                                                {config.is_enabled ? 'Live on Store' : 'Hidden'}
+                                                {config.is_enabled ? 'Live' : 'Hidden'}
                                             </Badge>
                                             <Button variant="secondary" onClick={() => handleToggle(config.id)} loading={actionLoading === config.id}>
                                                 {config.is_enabled ? 'Deactivate' : 'Activate'}
@@ -191,16 +190,15 @@ function ProductConfig() {
                     />
                 </Card>
 
-                {/* SHOPIFY PRODUCTS LIST */}
                 <Card padding="0">
                     <Box padding="400">
                         <BlockStack gap="400">
                             <InlineStack gap="200" align="start" blockAlign="center">
-                                <Package size={20} color="#6b46c1" />
+                                <SettingsIcon style={{ width: 20 }} />
                                 <Text variant="headingMd">Available from Shopify</Text>
                             </InlineStack>
                             <TextField
-                                prefix={<Search size={18} />}
+                                prefix={<SearchIcon style={{ width: 18 }} />}
                                 placeholder="Find products to connect..."
                                 value={searchQuery}
                                 onChange={setSearchQuery}
@@ -223,13 +221,13 @@ function ProductConfig() {
                                 >
                                     <InlineStack align="space-between" blockAlign="center">
                                         <InlineStack gap="400" blockAlign="center">
-                                            <Thumbnail source={product.image?.src || Package} alt={product.title} size="medium" />
+                                            <Thumbnail source={product.image?.src || 'https://cdn.shopify.com/s/files/1/0262/4071/2726/files/emptystate-files.png'} alt={product.title} size="medium" />
                                             <BlockStack>
                                                 <Text variant="bodyMd" fontWeight="bold">{product.title}</Text>
                                                 <Text tone="subdued" variant="bodySm">{product.variants.length} variants available</Text>
                                             </BlockStack>
                                         </InlineStack>
-                                        <Button primary onClick={() => handleConfigSelect(product)}>Configure</Button>
+                                        <Button variant="primary" onClick={() => handleConfigSelect(product)}>Configure</Button>
                                     </InlineStack>
                                 </ResourceItem>
                             )}
@@ -248,7 +246,7 @@ function ProductConfig() {
             >
                 <Modal.Section>
                     <FormLayout>
-                        <Banner tone="info" icon={Settings}>
+                        <Banner tone="info">
                             Assign each Shopify variant to a Pot Size (Small, Medium, etc) to ensure inventory tracking works correctly.
                         </Banner>
 
