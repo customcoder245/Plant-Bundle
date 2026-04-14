@@ -7,8 +7,8 @@
     "dev": "concurrently \"npm run dev:server\" \"npm run dev:client\"",
     "dev:server": "nodemon server/index.js",
     "dev:client": "cd client && npm run dev",
-    "build": "cd client && npm install --include=dev && npm run build",
-    "start": "node server/index.js",
+    "build": "cd client && npm install && npm run build",
+    "start": "npm run db:migrate && node server/index.js",
     "db:migrate": "node server/db/migrate.js",
     "db:seed": "node server/db/seed.js",
     "test": "jest"
@@ -16,9 +16,11 @@
   "dependencies": {
     "@shopify/shopify-api": "^9.0.0",
     "@shopify/shopify-app-express": "^4.0.0",
+    "@shopify/shopify-app-session-storage-postgresql": "^3.0.0",
     "cors": "^2.8.5",
     "dotenv": "^16.3.1",
     "express": "^4.18.2",
+    "multer": "^2.1.1",
     "pg": "^8.11.3",
     "uuid": "^9.0.0"
   },

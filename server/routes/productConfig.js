@@ -61,24 +61,75 @@ router.post('/', async (req, res) => {
 });
 
 router.put('/:id/toggle', async (req, res) => {
+    const { id } = req.params;
+    const shop = process.env.SHOPIFY_STORE_DOMAIN;
+    const accessToken = process.env.ADMIN_API || process.env.SHOPIFY_ACCESS_TOKEN;
+
     try {
+        // 1. Toggle DB state first
         const result = await pool.query(
             `UPDATE product_pot_config SET is_enabled = NOT is_enabled, updated_at = CURRENT_TIMESTAMP WHERE id = $1 RETURNING *`,
-            [req.params.id]
+            [id]
         );
-        await logActivity('PRODUCT_TOGGLED', `Toggled product ID ${req.params.id}`, { config_id: req.params.id, is_enabled: result.rows[0].is_enabled });
-        res.json(result.rows[0]);
+
+        const config = result.rows[0];
+        const isEnabled = config.is_enabled;
+        const shopifyProductId = config.shopify_product_id;
+
+        // 2. Sync status to Shopify
+        if (accessToken) {
+            console.log(`Syncing status for ${shopifyProductId} to ${isEnabled ? 'ACTIVE' : 'DRAFT'}...`);
+
+            await fetch(`https://${shop}/admin/api/2023-10/products/${shopifyProductId}.json`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-Shopify-Access-Token': accessToken
+                },
+                body: JSON.stringify({
+                    product: {
+                        id: shopifyProductId,
+                        status: isEnabled ? 'active' : 'draft'
+                    }
+                })
+            });
+        }
+
+        await logActivity('PRODUCT_TOGGLED', `Toggled product ID ${id}. New Shopify status: ${isEnabled ? 'active' : 'draft'}`, { config_id: id, is_enabled: isEnabled });
+        res.json(config);
     } catch (error) {
+        console.error('Toggle Sync failed:', error);
         res.status(500).json({ error: error.message });
     }
 });
 
 router.delete('/:id', async (req, res) => {
+    const { id } = req.params;
+    const shop = process.env.SHOPIFY_STORE_DOMAIN;
+    const accessToken = process.env.ADMIN_API || process.env.SHOPIFY_ACCESS_TOKEN;
+
     try {
-        await pool.query('DELETE FROM product_pot_config WHERE id = $1', [req.params.id]);
-        await logActivity('PRODUCT_CONFIG_DELETED', `Deleted product config ID: ${req.params.id}`, { config_id: req.params.id });
+        // 1. Find the Shopify ID from our DB first
+        const config = await pool.query('SELECT shopify_product_id FROM product_pot_config WHERE id = $1', [id]);
+
+        if (config.rows.length > 0 && accessToken) {
+            const shopifyProductId = config.rows[0].shopify_product_id;
+            console.log(`Deep-Deleting product ${shopifyProductId} from Shopify...`);
+
+            // 2. Delete from Shopify API
+            await fetch(`https://${shop}/admin/api/2023-10/products/${shopifyProductId}.json`, {
+                method: 'DELETE',
+                headers: { 'X-Shopify-Access-Token': accessToken }
+            });
+        }
+
+        // 3. Delete from our DB
+        await pool.query('DELETE FROM product_pot_config WHERE id = $1', [id]);
+        await logActivity('PRODUCT_CONFIG_DELETED', `Deleted product config and Shopify product for ID: ${id}`, { config_id: id });
+
         res.json({ success: true });
     } catch (error) {
+        console.error('Delete sync failed:', error);
         res.status(500).json({ error: error.message });
     }
 });

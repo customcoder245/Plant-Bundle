@@ -4,24 +4,74 @@ import { Page, Layout, Card, ResourceList, ResourceItem, Text, Badge, Button, Mo
 function ProductConfig() {
     const [configs, setConfigs] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [actionLoading, setActionLoading] = useState(null);
     const [modalOpen, setModalOpen] = useState(false);
     const [formData, setFormData] = useState({ shopify_product_id: '', product_title: '', no_pot_discount: '10.00', size_mappings: [] });
 
     useEffect(() => { fetchConfigs(); }, []);
 
     const fetchConfigs = async () => {
-        try { const res = await fetch('/api/product-config'); setConfigs(await res.json()); }
+        try {
+            const res = await fetch('/api/product-config');
+            const data = await res.json();
+            setConfigs(Array.isArray(data) ? data : []);
+        }
         catch (error) { console.error('Failed to fetch configs:', error); }
         finally { setLoading(false); }
     };
 
-    const handleToggle = async (id) => { try { await fetch(`/api/product-config/${id}/toggle`, { method: 'PUT' }); fetchConfigs(); } catch (error) { console.error('Failed to toggle config:', error); } };
-    const handleDelete = async (id) => { if (!confirm('Remove this product configuration?')) return; try { await fetch(`/api/product-config/${id}`, { method: 'DELETE' }); fetchConfigs(); } catch (error) { console.error('Failed to delete config:', error); } };
+    const handleToggle = async (id) => {
+        setActionLoading(id);
+        try {
+            const res = await fetch(`/api/product-config/${id}/toggle`, { method: 'PUT' });
+            if (res.ok) {
+                fetchConfigs();
+            } else {
+                const data = await res.json();
+                alert(`Error: ${data.error || 'Failed to toggle status'}`);
+            }
+        } catch (error) {
+            console.error('Failed to toggle config:', error);
+            alert('Server error while toggling status');
+        } finally {
+            setActionLoading(null);
+        }
+    };
+
+    const handleDelete = async (id) => {
+        if (!confirm('Remove this product configuration and deep-delete from Shopify?')) return;
+        setActionLoading(id);
+        try {
+            const res = await fetch(`/api/product-config/${id}`, { method: 'DELETE' });
+            if (res.ok) {
+                fetchConfigs();
+            } else {
+                const data = await res.json();
+                alert(`Error: ${data.error || 'Failed to delete product'}`);
+            }
+        } catch (error) {
+            console.error('Failed to delete config:', error);
+            alert('Server error while deleting product');
+        } finally {
+            setActionLoading(null);
+        }
+    };
 
     const handleSave = async () => {
         try {
-            await fetch('/api/product-config', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ...formData, shopify_product_id: parseInt(formData.shopify_product_id), no_pot_discount: parseFloat(formData.no_pot_discount) }) });
-            setModalOpen(false); setFormData({ shopify_product_id: '', product_title: '', no_pot_discount: '10.00', size_mappings: [] }); fetchConfigs();
+            const res = await fetch('/api/product-config', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ ...formData, shopify_product_id: parseInt(formData.shopify_product_id), no_pot_discount: parseFloat(formData.no_pot_discount) })
+            });
+            if (res.ok) {
+                setModalOpen(false);
+                setFormData({ shopify_product_id: '', product_title: '', no_pot_discount: '10.00', size_mappings: [] });
+                fetchConfigs();
+            } else {
+                const data = await res.json();
+                alert(`Error: ${data.error || 'Failed to save config'}`);
+            }
         } catch (error) { console.error('Failed to save config:', error); }
     };
 
@@ -42,8 +92,8 @@ function ProductConfig() {
                             </BlockStack>
                             <InlineStack gap="200">
                                 <Badge tone={config.is_enabled ? 'success' : 'info'}>{config.is_enabled ? 'Enabled' : 'Disabled'}</Badge>
-                                <Button size="slim" onClick={() => handleToggle(config.id)}>{config.is_enabled ? 'Disable' : 'Enable'}</Button>
-                                <Button size="slim" tone="critical" onClick={() => handleDelete(config.id)}>Remove</Button>
+                                <Button size="slim" onClick={() => handleToggle(config.id)} loading={actionLoading === config.id}>{config.is_enabled ? 'Disable' : 'Enable'}</Button>
+                                <Button size="slim" tone="critical" onClick={() => handleDelete(config.id)} loading={actionLoading === config.id}>Remove</Button>
                             </InlineStack>
                         </InlineStack>
                     </ResourceItem>

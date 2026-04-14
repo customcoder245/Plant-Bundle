@@ -60,4 +60,46 @@ router.post('/orders/refunded', async (req, res) => {
     }
 });
 
+const pool = require('../db/pool');
+
+router.post('/products/delete', async (req, res) => {
+    try {
+        if (!verifyWebhook(req)) return res.status(401).json({ error: 'Invalid webhook signature' });
+        const data = JSON.parse(req.body);
+        const shopifyProductId = data.id;
+
+        console.log(`Webhook received: Sync-deleting product ${shopifyProductId} from DB because it was deleted in Shopify...`);
+
+        // Remove from our database
+        await pool.query('DELETE FROM product_pot_config WHERE shopify_product_id = $1', [shopifyProductId]);
+        await logActivity('SHOPIFY_SYNC_DELETE', `Auto-deleted config for product ${shopifyProductId} via Shopify webhook`, { shopify_id: shopifyProductId });
+
+        res.status(200).json({ success: true });
+    } catch (error) {
+        console.error('Product sync delete failed:', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
+router.post('/products/update', async (req, res) => {
+    try {
+        if (!verifyWebhook(req)) return res.status(401).json({ error: 'Invalid webhook signature' });
+        const data = JSON.parse(req.body);
+        const shopifyProductId = data.id;
+        const status = data.status; // 'active' or 'draft'
+        const isEnabled = status === 'active';
+
+        console.log(`Webhook received: Syncing status for product ${shopifyProductId} (Enabled: ${isEnabled}) from Shopify...`);
+
+        // Update our database status
+        await pool.query('UPDATE product_pot_config SET is_enabled = $1 WHERE shopify_product_id = $2', [isEnabled, shopifyProductId]);
+        await logActivity('SHOPIFY_SYNC_UPDATE', `Synced status for product ${shopifyProductId} to ${status} via Shopify webhook`, { shopify_id: shopifyProductId, status });
+
+        res.status(200).json({ success: true });
+    } catch (error) {
+        console.error('Product sync update failed:', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
 module.exports = router;
