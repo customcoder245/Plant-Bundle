@@ -10,6 +10,7 @@ import Images from './pages/Images';
 import ActivityLog from './pages/ActivityLog';
 import Settings from './pages/Settings';
 import AddPlantProduct from './pages/AddPlantProduct';
+import BundleBuilder from './pages/BundleBuilder';
 
 function App() {
     const location = useLocation();
@@ -19,8 +20,9 @@ function App() {
             <Navigation.Section
                 items={[
                     { url: '/', label: 'Dashboard', icon: HomeIcon },
-                    { url: '/add-product', label: 'Add Plant Product', icon: PlusIcon },
-                    { url: '/pot-colors', label: 'Pot Colors', icon: ColorIcon },
+                    { url: '/builder', label: 'Bundle Builder', icon: PlusIcon },
+                    { url: '/add-product', label: 'Manual Sync', icon: ProductIcon },
+                    { url: '/pot-colors', label: 'Pot Library', icon: ColorIcon },
                     { url: '/inventory', label: 'Pot Inventory', icon: InventoryIcon },
                     { url: '/products', label: 'Product Config', icon: ProductIcon },
                     { url: '/images', label: 'Images', icon: ImageIcon },
@@ -35,6 +37,7 @@ function App() {
         <Frame navigation={navigationMarkup}>
             <Routes>
                 <Route path="/" element={<Dashboard />} />
+                <Route path="/builder" element={<BundleBuilder />} />
                 <Route path="/add-product" element={<AddPlantProduct />} />
                 <Route path="/pot-colors" element={<PotColors />} />
                 <Route path="/inventory" element={<Inventory />} />

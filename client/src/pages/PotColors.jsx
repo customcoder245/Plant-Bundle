@@ -6,7 +6,7 @@ import {
     Thumbnail, Banner
 } from '@shopify/polaris';
 import { PlusIcon, EditIcon, DeleteIcon, DragHandleIcon } from '@shopify/polaris-icons';
-import { Palette, CheckCircle2 } from 'lucide-react';
+import { Palette, CheckCircle2, Package } from 'lucide-react';
 
 function PotColors() {
     const [colors, setColors] = useState([]);
@@ -72,9 +72,9 @@ function PotColors() {
 
     return (
         <Page
-            title="Pot Colors"
+            title="Pot Library"
             primaryAction={{
-                content: 'Add Brand Color',
+                content: 'Add New Pot Type',
                 icon: PlusIcon,
                 onAction: () => {
                     setEditingColor(null);
@@ -110,14 +110,20 @@ function PotColors() {
                                         </div>
                                         <div style={{
                                             width: 44, height: 44,
-                                            backgroundColor: color.hex_code,
-                                            borderRadius: '50%',
-                                            border: '3px solid #fff',
-                                            boxShadow: '0 2px 8px rgba(0,0,0,0.15)'
-                                        }} />
+                                            background: '#f6f6f7',
+                                            borderRadius: '8px',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            justifyContent: 'center',
+                                            color: '#1a4d2e'
+                                        }}>
+                                            <Package size={20} />
+                                        </div>
                                         <BlockStack gap="050">
-                                            <Text variant="bodyMd" fontWeight="bold">{color.name}</Text>
-                                            <Text tone="subdued" variant="bodySm">{color.hex_code.toUpperCase()}</Text>
+                                            <InlineStack gap="100" blockAlign="center">
+                                                <Text variant="bodyMd" fontWeight="bold">{color.name}</Text>
+                                                {color.type && <Badge size="small">{color.type}</Badge>}
+                                            </InlineStack>
                                         </BlockStack>
                                     </InlineStack>
 
@@ -153,37 +159,35 @@ function PotColors() {
             >
                 <Modal.Section>
                     <FormLayout>
-                        <TextField
-                            label="Friendly Name"
-                            value={formData.name}
-                            onChange={(value) => setFormData({ ...formData, name: value })}
-                            autoComplete="off"
-                            placeholder="e.g. Sage Green"
-                        />
-                        <div style={{ display: 'flex', gap: '20px', alignItems: 'flex-end' }}>
+                        <InlineStack gap="400">
                             <div style={{ flex: 1 }}>
                                 <TextField
-                                    label="Hex Color Code"
-                                    value={formData.hex_code}
-                                    onChange={(value) => setFormData({ ...formData, hex_code: value })}
+                                    label="Pot Style / Type"
+                                    value={formData.type || ''}
+                                    onChange={(value) => setFormData({ ...formData, type: value })}
+                                    placeholder="e.g. Ceramic White, Matte Black"
                                     autoComplete="off"
-                                    placeholder="#000000"
                                 />
                             </div>
-                            <div style={{
-                                width: '100px', height: '36px',
-                                backgroundColor: formData.hex_code,
-                                borderRadius: '8px', border: '1px solid #ccc',
-                                marginBottom: '2px'
-                            }} />
-                        </div>
+                            <div style={{ flex: 1 }}>
+                                <TextField
+                                    label="Internal Label"
+                                    value={formData.name}
+                                    onChange={(value) => setFormData({ ...formData, name: value })}
+                                    autoComplete="off"
+                                    placeholder="e.g. White Pot Small"
+                                />
+                            </div>
+                        </InlineStack>
+                        <Banner tone="info">
+                            <p>Pot images are now automatically pulled from your Shopify product variants to ensure 100% accuracy.</p>
+                        </Banner>
                         <TextField
                             label="Sort Priority"
                             type="number"
                             value={formData.display_order.toString()}
                             onChange={(value) => setFormData({ ...formData, display_order: parseInt(value) || 0 })}
                             autoComplete="off"
-                            helpText="Lower numbers appear first in the customer swatch list."
                         />
                     </FormLayout>
                 </Modal.Section>

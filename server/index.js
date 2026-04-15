@@ -101,7 +101,7 @@ app.get('*', (req, res) => {
 async function runMigrations() {
   try {
     const migrations = `
-      CREATE TABLE IF NOT EXISTS pot_colors (id SERIAL PRIMARY KEY, name VARCHAR(100) NOT NULL, hex_code VARCHAR(7) NOT NULL, display_order INTEGER DEFAULT 0, is_active BOOLEAN DEFAULT true, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP);
+      CREATE TABLE IF NOT EXISTS pot_colors (id SERIAL PRIMARY KEY, name VARCHAR(100) NOT NULL, type VARCHAR(100), hex_code VARCHAR(7) NOT NULL, display_order INTEGER DEFAULT 0, is_active BOOLEAN DEFAULT true, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP);
       CREATE TABLE IF NOT EXISTS pot_inventory (id SERIAL PRIMARY KEY, pot_color_id INTEGER REFERENCES pot_colors(id) ON DELETE CASCADE, size VARCHAR(50) NOT NULL, quantity INTEGER DEFAULT 0, low_stock_threshold INTEGER DEFAULT 10, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, UNIQUE(pot_color_id, size));
       CREATE TABLE IF NOT EXISTS product_pot_config (id SERIAL PRIMARY KEY, shopify_product_id BIGINT NOT NULL UNIQUE, product_title VARCHAR(255), is_enabled BOOLEAN DEFAULT true, no_pot_discount DECIMAL(10,2) DEFAULT 10.00, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP);
       CREATE TABLE IF NOT EXISTS size_mappings (id SERIAL PRIMARY KEY, product_config_id INTEGER REFERENCES product_pot_config(id) ON DELETE CASCADE, shopify_variant_id BIGINT NOT NULL, variant_title VARCHAR(255), pot_size VARCHAR(50) NOT NULL, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP);
