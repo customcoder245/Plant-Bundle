@@ -25,7 +25,7 @@ function App() {
                     { url: '/pot-colors', label: 'Pot Library', icon: ColorIcon },
                     { url: '/inventory', label: 'Pot Inventory', icon: InventoryIcon },
                     { url: '/products', label: 'Product Config', icon: ProductIcon },
-                    { url: '/images', label: 'Images', icon: ImageIcon },
+                    { url: '/images', label: 'Visual Library', icon: ImageIcon },
                     { url: '/activity', label: 'Activity Log', icon: ClockIcon },
                     { url: '/settings', label: 'Settings', icon: SettingsIcon },
                 ]}

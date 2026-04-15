@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import {
     Page, Card, BlockStack, InlineStack, Text, Badge,
     Button, TextField, Select, Divider, Banner,
-    Box, SkeletonBodyText, Modal, FormLayout
+    Box, SkeletonBodyText, Modal, FormLayout, Layout
 } from '@shopify/polaris';
 import { SearchIcon, RefreshIcon, PlusIcon, CheckIcon } from '@shopify/polaris-icons';
 import { Leaf } from 'lucide-react';

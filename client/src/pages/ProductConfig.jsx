@@ -5,7 +5,8 @@ import {
     InlineStack, EmptyState, Banner, SkeletonBodyText, Thumbnail,
     Box, Divider
 } from '@shopify/polaris';
-import { RefreshIcon, SearchIcon, CheckCircleIcon, SettingsIcon } from '@shopify/polaris-icons';
+import { RefreshIcon, SearchIcon, SettingsIcon } from '@shopify/polaris-icons';
+import { Leaf } from 'lucide-react';
 
 function ProductConfig() {
     const [configs, setConfigs] = useState([]);
@@ -139,7 +140,9 @@ function ProductConfig() {
                 <Card>
                     <Box padding="400">
                         <InlineStack gap="200" align="start" blockAlign="center">
-                            <CheckCircleIcon style={{ width: 20, color: '#2f855a' }} />
+                            <div style={{ padding: 6, background: '#f5f7f5', borderRadius: 8 }}>
+                                <Leaf size={20} color="#1a4d2e" />
+                            </div>
                             <Text variant="headingMd">Configured Products</Text>
                         </InlineStack>
                     </Box>
