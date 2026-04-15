@@ -106,8 +106,8 @@ function Dashboard() {
                     <BlockStack gap="200">
                         <Text variant="heading2xl" as="h1">Welcome back!</Text>
                         <Text variant="bodyLg" tone="subdued">Manage your Plant + Pot bundles and inventory with ease.</Text>
-                        
-                        <div style={{ 
+
+                        <div style={{
                             marginTop: '1rem',
                             padding: '12px 18px',
                             background: 'rgba(143, 177, 73, 0.1)',
@@ -115,12 +115,12 @@ function Dashboard() {
                             borderRadius: '0 12px 12px 0',
                             display: 'inline-block'
                         }}>
-                             <InlineStack gap="200" blockAlign="center">
+                            <InlineStack gap="200" blockAlign="center">
                                 <Leaf size={16} color="#1a4d2e" />
                                 <Text variant="bodySm" fontWeight="semibold" tone="success">
                                     Quick Care Tip: Madagascar Palms (Pachypodium) thrive in bright direct sun. Keep soil dry between waterings!
                                 </Text>
-                             </InlineStack>
+                            </InlineStack>
                         </div>
                     </BlockStack>
                 </motion.div>
@@ -176,7 +176,7 @@ function Dashboard() {
                             className="premium-card"
                             style={{ padding: 0 }}
                         >
-                             <Card padding="0">
+                            <Card padding="0">
                                 <Box padding="400">
                                     <InlineStack align="space-between" blockAlign="center">
                                         <Text variant="headingMd">🌿 Recently Configured</Text>
@@ -190,8 +190,8 @@ function Dashboard() {
                                         { title: 'Snake Plant Laurentii', sizes: 3, pots: 5, date: '5h ago' },
                                         { title: 'Monstera Deliciosa', sizes: 1, pots: 4, date: 'Yesterday' }
                                     ].map((b, i) => (
-                                        <div key={i} style={{ 
-                                            padding: '12px 0', 
+                                        <div key={i} style={{
+                                            padding: '12px 0',
                                             borderBottom: i < 2 ? '1px solid #f1f2f3' : 'none',
                                             display: 'flex',
                                             alignItems: 'center',
@@ -228,7 +228,7 @@ function Dashboard() {
                                 </InlineStack>
 
                                 <div className="activity-list">
-                                    {stats?.recentActivity?.slice(0, 5).map((item, index) => (
+                                    {Array.isArray(stats?.recentActivity) && stats.recentActivity.slice(0, 5).map((item, index) => (
                                         <div key={index} className="timeline-item">
                                             <div className="timeline-point" />
                                             <div style={{ flex: 1 }}>

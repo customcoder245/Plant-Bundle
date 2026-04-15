@@ -45,7 +45,7 @@ function ProductConfig() {
 
     const fetchConfigs = async () => {
         try {
-            const [configsRes, colorsRes] = await Promise.all([ fetch('/api/product-config'), fetch('/api/pots/colors') ]);
+            const [configsRes, colorsRes] = await Promise.all([fetch('/api/product-config'), fetch('/api/pots/colors')]);
             const configsData = await configsRes.json();
             const colorsData = await colorsRes.json();
             setConfigs(Array.isArray(configsData) ? configsData : []);
@@ -62,10 +62,12 @@ function ProductConfig() {
             setShopifyProducts(Array.isArray(data) ? data : []);
         } catch (error) {
             console.error('Failed to fetch Shopify products:', error);
+            setShopifyProducts([]);
         } finally {
             setSyncLoading(false);
         }
     };
+
 
     const handleToggle = async (id) => {
         setActionLoading(id);
@@ -131,14 +133,16 @@ function ProductConfig() {
     };
 
     const handleGenerateOpen = (product) => {
-        setGenerateData({ 
-            shopify_product_id: product.id.toString(), 
-            product_title: product.title, 
+        if (!product) return;
+        setGenerateData({
+            shopify_product_id: product.id?.toString() || '',
+            product_title: product.title || 'Unknown Product',
             sizes: [{ name: '4" Pot', price: product.variants?.[0]?.price || '29.99', inventory: '100' }],
-            colors: availableColors.filter(c => c.is_active).map(c => c.name) 
+            colors: (Array.isArray(availableColors) ? availableColors : []).filter(c => c.is_active).map(c => c.name)
         });
         setGenerateModalOpen(true);
     };
+
 
 
     const handleGenerateSubmit = async () => {
@@ -146,7 +150,7 @@ function ProductConfig() {
         try {
             const sizesArr = generateData.sizes.filter(s => s.name.trim() !== '');
             const colorsArr = availableColors.filter(c => generateData.colors.includes(c.name));
-            
+
             const res = await fetch(`/api/products/${generateData.shopify_product_id}/generate-variants`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -170,11 +174,12 @@ function ProductConfig() {
     };
 
 
-    const configuredIds = configs.map(c => c.shopify_product_id.toString());
-    const unconfiguredProducts = shopifyProducts.filter(p =>
+    const configuredIds = (Array.isArray(configs) ? configs : []).map(c => c.shopify_product_id.toString());
+    const unconfiguredProducts = (Array.isArray(shopifyProducts) ? shopifyProducts : []).filter(p =>
         !configuredIds.includes(p.id?.toString()) &&
         (p.title || '').toLowerCase().includes(searchQuery.toLowerCase())
     );
+
 
     if (loading) return <Page title="Manage Bundles"><SkeletonBodyText lines={20} /></Page>;
 
@@ -207,16 +212,22 @@ function ProductConfig() {
                                         <InlineStack gap="400" blockAlign="center">
                                             <Thumbnail source={imageUrl || 'https://cdn.shopify.com/s/files/1/0262/4071/2726/files/emptystate-files.png'} alt={config.product_title} size="medium" />
                                             <BlockStack gap="050">
-                                                <Text variant="bodyMd" fontWeight="bold">{config.product_title}</Text>
+                                                <Text variant="bodyMd" fontWeight="semibold">{config.product_title}</Text>
                                                 <InlineStack gap="200">
-                                                    <Badge tone="info" size="small">${config.no_pot_discount} Discount</Badge>
+                                                    <Badge tone={config.is_enabled ? 'success' : 'attention'}>
+                                                        {config.is_enabled ? 'Active' : 'Disabled'}
+                                                    </Badge>
                                                     <Text tone="subdued" variant="bodySm">{(config.size_mappings || []).length} Sizes mapped</Text>
+                                                    <Text tone="subdued" variant="bodySm">{(shopifyProduct?.variants || []).length} Shopify Variants</Text>
                                                 </InlineStack>
                                             </BlockStack>
                                         </InlineStack>
 
                                         <InlineStack gap="200">
-                                            <Button size="slim" onClick={() => handleGenerateOpen(shopifyProduct)}>Insta-Build Variants</Button>
+                                            {shopifyProduct && (
+                                                <Button size="slim" onClick={() => handleGenerateOpen(shopifyProduct)}>Insta-Build Variants</Button>
+                                            )}
+
                                             <Badge tone={config.is_enabled ? 'success' : 'attention'}>
                                                 {config.is_enabled ? 'Live' : 'Hidden'}
                                             </Badge>
@@ -317,7 +328,8 @@ function ProductConfig() {
                         <Text variant="headingMd">Variant-to-Pot Mapping</Text>
 
                         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
-                            {formData.size_mappings.map((mapping, index) => (
+                            {(formData.size_mappings || []).map((mapping, index) => (
+
                                 <Box key={index} padding="300" background="bg-surface-secondary" borderRadius="200" borderStyle="solid" borderWidth="025" borderColor="border-subdued">
                                     <BlockStack gap="300">
                                         <BlockStack gap="050">
@@ -364,66 +376,66 @@ function ProductConfig() {
                             {generateData.sizes?.map((size, idx) => (
                                 <InlineStack key={idx} gap="300" blockAlign="center">
                                     <div style={{ flex: 2 }}>
-                                        <TextField 
+                                        <TextField
                                             label="Size Name" labelHidden
                                             placeholder='e.g. 4" Pot'
-                                            value={size.name} 
+                                            value={size.name}
                                             onChange={v => {
                                                 const s = [...generateData.sizes];
                                                 s[idx].name = v;
-                                                setGenerateData({...generateData, sizes: s});
-                                            }} 
+                                                setGenerateData({ ...generateData, sizes: s });
+                                            }}
                                         />
                                     </div>
                                     <div style={{ flex: 1 }}>
-                                        <TextField 
+                                        <TextField
                                             label="Price" labelHidden
                                             prefix="$"
-                                            value={size.price} 
+                                            value={size.price}
                                             onChange={v => {
                                                 const s = [...generateData.sizes];
                                                 s[idx].price = v;
-                                                setGenerateData({...generateData, sizes: s});
-                                            }} 
+                                                setGenerateData({ ...generateData, sizes: s });
+                                            }}
                                         />
                                     </div>
                                     <div style={{ flex: 1 }}>
-                                        <TextField 
+                                        <TextField
                                             label="Initial Inventory" labelHidden
                                             type="number"
-                                            value={size.inventory} 
+                                            value={size.inventory}
                                             onChange={v => {
                                                 const s = [...generateData.sizes];
                                                 s[idx].inventory = v;
-                                                setGenerateData({...generateData, sizes: s});
-                                            }} 
+                                                setGenerateData({ ...generateData, sizes: s });
+                                            }}
                                         />
                                     </div>
                                     <Button tone="critical" onClick={() => {
                                         const s = generateData.sizes.filter((_, i) => i !== idx);
-                                        setGenerateData({...generateData, sizes: s});
+                                        setGenerateData({ ...generateData, sizes: s });
                                     }}>Remove</Button>
                                 </InlineStack>
                             ))}
                             <Button onClick={() => {
-                                setGenerateData({...generateData, sizes: [...generateData.sizes, { name: '', price: '29.99', inventory: '100' }]});
+                                setGenerateData({ ...generateData, sizes: [...generateData.sizes, { name: '', price: '29.99', inventory: '100' }] });
                             }}>+ Add Another Size</Button>
                         </BlockStack>
-                        
+
                         <Divider />
-                        
+
                         <Text variant="headingSm">Include Colors:</Text>
 
                         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
                             {availableColors.map(c => (
-                                <Badge 
-                                    key={c.id} 
+                                <Badge
+                                    key={c.id}
                                     tone={generateData.colors.includes(c.name) ? "success" : "new"}
                                     progress={generateData.colors.includes(c.name) ? "complete" : "incomplete"}
                                     onClick={() => {
                                         const prev = generateData.colors;
                                         const upd = prev.includes(c.name) ? prev.filter(x => x !== c.name) : [...prev, c.name];
-                                        setGenerateData({...generateData, colors: upd});
+                                        setGenerateData({ ...generateData, colors: upd });
                                     }}
                                 >
                                     <span style={{ cursor: 'pointer' }}>{c.name} {generateData.colors.includes(c.name) && "✓"}</span>
