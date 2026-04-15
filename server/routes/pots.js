@@ -13,12 +13,13 @@ router.get('/colors', async (req, res) => {
 });
 
 router.post('/colors', async (req, res) => {
-    const { name, type, hex_code, display_order } = req.body;
+    const { name, type, hex_code, display_order, image_url } = req.body;
     try {
         const result = await pool.query(
-            `INSERT INTO pot_colors (name, type, hex_code, display_order) VALUES ($1, $2, $3, $4) RETURNING *`,
-            [name, type, hex_code, display_order || 0]
+            `INSERT INTO pot_colors (name, type, hex_code, display_order, image_url) VALUES ($1, $2, $3, $4, $5) RETURNING *`,
+            [name, type, hex_code || '#000', display_order || 0, image_url]
         );
+
         await logActivity('POT_COLOR_CREATED', `Created pot color: ${name}`, { color_id: result.rows[0].id });
         res.json(result.rows[0]);
     } catch (error) {
@@ -28,12 +29,13 @@ router.post('/colors', async (req, res) => {
 
 router.put('/colors/:id', async (req, res) => {
     const { id } = req.params;
-    const { name, type, hex_code, display_order, is_active } = req.body;
+    const { name, type, hex_code, display_order, is_active, image_url } = req.body;
     try {
         const result = await pool.query(
-            `UPDATE pot_colors SET name = COALESCE($1, name), type = COALESCE($2, type), hex_code = COALESCE($3, hex_code), display_order = COALESCE($4, display_order), is_active = COALESCE($5, is_active), updated_at = CURRENT_TIMESTAMP WHERE id = $6 RETURNING *`,
-            [name, type, hex_code, display_order, is_active, id]
+            `UPDATE pot_colors SET name = COALESCE($1, name), type = COALESCE($2, type), hex_code = COALESCE($3, hex_code), display_order = COALESCE($4, display_order), is_active = COALESCE($5, is_active), image_url = COALESCE($6, image_url), updated_at = CURRENT_TIMESTAMP WHERE id = $7 RETURNING *`,
+            [name, type, hex_code, display_order, is_active, image_url, id]
         );
+
         await logActivity('POT_COLOR_UPDATED', `Updated pot color: ${result.rows[0].name}`, { color_id: id });
         res.json(result.rows[0]);
     } catch (error) {

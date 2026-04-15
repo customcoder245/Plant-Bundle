@@ -107,6 +107,7 @@ async function runMigrations() {
       CREATE TABLE IF NOT EXISTS size_mappings (id SERIAL PRIMARY KEY, product_config_id INTEGER REFERENCES product_pot_config(id) ON DELETE CASCADE, shopify_variant_id BIGINT NOT NULL, variant_title VARCHAR(255), pot_size VARCHAR(50) NOT NULL, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP);
       CREATE TABLE IF NOT EXISTS composite_images (id SERIAL PRIMARY KEY, product_config_id INTEGER REFERENCES product_pot_config(id) ON DELETE CASCADE, pot_color_id INTEGER REFERENCES pot_colors(id) ON DELETE CASCADE, size VARCHAR(50), image_url TEXT NOT NULL, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP);
       CREATE TABLE IF NOT EXISTS activity_log (id SERIAL PRIMARY KEY, event_type VARCHAR(50) NOT NULL, description TEXT, metadata JSONB, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP);
+      ALTER TABLE pot_colors ADD COLUMN IF NOT EXISTS image_url TEXT;
     `;
     await pool.query(migrations);
     console.log('Database migrations completed successfully');

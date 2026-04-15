@@ -13,7 +13,8 @@ function PotColors() {
     const [loading, setLoading] = useState(true);
     const [modalOpen, setModalOpen] = useState(false);
     const [editingColor, setEditingColor] = useState(null);
-    const [formData, setFormData] = useState({ name: '', hex_code: '#000000', display_order: 0 });
+    const [formData, setFormData] = useState({ name: '', type: '', hex_code: '#000000', display_order: 0, image_url: '' });
+
     const [saving, setSaving] = useState(false);
 
     useEffect(() => { fetchColors(); }, []);
@@ -115,10 +116,17 @@ function PotColors() {
                                             display: 'flex',
                                             alignItems: 'center',
                                             justifyContent: 'center',
-                                            color: '#1a4d2e'
+                                            color: '#1a4d2e',
+                                            overflow: 'hidden',
+                                            border: '1px solid #eee'
                                         }}>
-                                            <Package size={20} />
+                                            {color.image_url ? (
+                                                <img src={color.image_url} alt={color.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                            ) : (
+                                                <Package size={20} />
+                                            )}
                                         </div>
+
                                         <BlockStack gap="050">
                                             <InlineStack gap="100" blockAlign="center">
                                                 <Text variant="bodyMd" fontWeight="bold">{color.name}</Text>
@@ -179,6 +187,15 @@ function PotColors() {
                                 />
                             </div>
                         </InlineStack>
+                        <TextField
+                            label="Pot Image URL"
+                            value={formData.image_url || ''}
+                            onChange={(value) => setFormData({ ...formData, image_url: value })}
+                            autoComplete="off"
+                            placeholder="https://cdn.shopify.com/.../pot.jpg"
+                            helpText="Enter an image URL to show inside the Pot Library and on the store swatches."
+                        />
+
                         <Banner tone="info">
                             <p>Pot images are now automatically pulled from your Shopify product variants to ensure 100% accuracy.</p>
                         </Banner>

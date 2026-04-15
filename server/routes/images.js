@@ -39,21 +39,37 @@ router.post('/', upload.single('image'), async (req, res) => {
         if (configResult.rows.length === 0) throw new Error('Product configuration not found');
         const shopifyProductId = configResult.rows[0].shopify_product_id;
 
-        // 2. Identify which variants to link this image to
+        // 2. Identify which variants to link this image to by matching Size AND Color
         let targetVariantIds = [];
+        
+        // Fetch color name for matching
+        const colorRes = await pool.query('SELECT name FROM pot_colors WHERE id = $1', [pot_color_id]);
+        const colorName = colorRes.rows[0]?.name?.toLowerCase() || '';
 
+        const allVariants = await pool.query('SELECT shopify_variant_id, variant_title, pot_size FROM size_mappings WHERE product_config_id = $1', [product_config_id]);
+        
         if (size.toLowerCase() === 'all') {
-            // Fetch all variants for this product config
-            const allVariants = await pool.query('SELECT shopify_variant_id FROM size_mappings WHERE product_config_id = $1', [product_config_id]);
-            targetVariantIds = allVariants.rows.map(v => v.shopify_variant_id);
+            // Find all variants that match the COLOR
+            targetVariantIds = allVariants.rows
+                .filter(v => v.variant_title.toLowerCase().includes(colorName))
+                .map(v => v.shopify_variant_id);
+                
+            // Fallback: If no color match found, just associate with all variants
+            if (targetVariantIds.length === 0) targetVariantIds = allVariants.rows.map(v => v.shopify_variant_id);
         } else {
-            // Find a specific variant ID by matching the pot_size
-            const specificVariant = await pool.query(
-                'SELECT shopify_variant_id FROM size_mappings WHERE product_config_id = $1 AND pot_size = $2',
-                [product_config_id, size]
-            );
-            if (specificVariant.rows.length > 0) {
-                targetVariantIds = [specificVariant.rows[0].shopify_variant_id];
+            // Precise Match: Must match the mapped internal size AND the specific color name in the title
+            targetVariantIds = allVariants.rows
+                .filter(v => 
+                    v.pot_size.toLowerCase() === size.toLowerCase() && 
+                    v.variant_title.toLowerCase().includes(colorName)
+                )
+                .map(v => v.shopify_variant_id);
+                
+            // Fallback: If exact color match missing in title, just match by size
+            if (targetVariantIds.length === 0) {
+                 targetVariantIds = allVariants.rows
+                    .filter(v => v.pot_size.toLowerCase() === size.toLowerCase())
+                    .map(v => v.shopify_variant_id);
             }
         }
 
