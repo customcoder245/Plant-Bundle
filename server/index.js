@@ -50,7 +50,13 @@ const activityRoutes = require('./routes/activity');
 const productRoutes = require('./routes/products'); // New route file
 
 app.use(cors());
-app.use(express.json());
+app.use(express.json({
+  verify: (req, res, buf) => {
+    if (req.originalUrl.includes('/webhooks')) {
+      req.rawBody = buf;
+    }
+  }
+}));
 
 // Shopify auth routes
 app.get('/api/auth', shopify.auth.begin());

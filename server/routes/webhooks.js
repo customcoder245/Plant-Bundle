@@ -6,10 +6,17 @@ const inventoryService = require('../services/inventoryService');
 
 function verifyWebhook(req) {
     const hmac = req.headers['x-shopify-hmac-sha256'];
-    const body = req.body;
     const secret = process.env.SHOPIFY_API_SECRET;
-    if (!hmac || !secret) return false;
-    const hash = crypto.createHmac('sha256', secret).update(body, 'utf8').digest('base64');
+
+    // Use rawBody if available (from express.json verify), otherwise fallback to req.body
+    const body = req.rawBody || req.body;
+
+    if (!hmac || !secret || !body) return false;
+
+    const hash = crypto.createHmac('sha256', secret)
+        .update(body, 'utf8')
+        .digest('base64');
+
     try {
         return crypto.timingSafeEqual(Buffer.from(hmac), Buffer.from(hash));
     } catch (e) {
@@ -20,7 +27,7 @@ function verifyWebhook(req) {
 router.post('/orders/create', async (req, res) => {
     try {
         if (!verifyWebhook(req)) return res.status(401).json({ error: 'Invalid webhook signature' });
-        const order = JSON.parse(req.body);
+        const order = req.body; // already parsed by express.json()
         await inventoryService.processOrder(order, 'deduct');
         await logActivity('ORDER_CREATED', `Processed order ${order.id}`, { order_id: order.id, order_number: order.order_number });
         res.status(200).json({ success: true });
@@ -34,7 +41,7 @@ router.post('/orders/create', async (req, res) => {
 router.post('/orders/cancelled', async (req, res) => {
     try {
         if (!verifyWebhook(req)) return res.status(401).json({ error: 'Invalid webhook signature' });
-        const order = JSON.parse(req.body);
+        const order = req.body;
         await inventoryService.processOrder(order, 'restore');
         await logActivity('ORDER_CANCELLED', `Restored inventory for order ${order.id}`, { order_id: order.id });
         res.status(200).json({ success: true });
@@ -48,7 +55,7 @@ router.post('/orders/cancelled', async (req, res) => {
 router.post('/orders/refunded', async (req, res) => {
     try {
         if (!verifyWebhook(req)) return res.status(401).json({ error: 'Invalid webhook signature' });
-        const order = JSON.parse(req.body);
+        const order = req.body;
         if (order.financial_status === 'refunded') {
             await inventoryService.processOrder(order, 'restore');
             await logActivity('ORDER_REFUNDED', `Restored inventory for refunded order ${order.id}`, { order_id: order.id });
