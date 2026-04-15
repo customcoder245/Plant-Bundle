@@ -25,7 +25,7 @@ const StatCard = ({ title, value, label, icon: Icon, color, delay }) => (
             <Icon size={24} />
         </div>
         <Text variant="headingSm" as="h3" tone="subdued">{title}</Text>
-        <div className="stat-value gradient-text">{value}</div>
+        <div className="stat-value gradient-text">{value.toLocaleString()}</div>
         <Text variant="bodySm" tone="subdued">{label}</Text>
 
         <div style={{ position: 'absolute', bottom: '-10px', right: '-10px', opacity: 0.05, transform: 'rotate(-15deg)' }}>
