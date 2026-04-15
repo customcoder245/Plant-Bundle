@@ -15,7 +15,11 @@ function ProductConfig() {
     const [syncLoading, setSyncLoading] = useState(false);
     const [actionLoading, setActionLoading] = useState(null);
     const [modalOpen, setModalOpen] = useState(false);
+    const [generateModalOpen, setGenerateModalOpen] = useState(false);
+    const [generateData, setGenerateData] = useState({ shopify_product_id: '', product_title: '', base_price: '29.99', sizes: 'Small, Medium, Large', colors: [] });
+    const [availableColors, setAvailableColors] = useState([]);
     const [searchQuery, setSearchQuery] = useState('');
+
 
     const [formData, setFormData] = useState({
         shopify_product_id: '',
@@ -41,11 +45,14 @@ function ProductConfig() {
 
     const fetchConfigs = async () => {
         try {
-            const res = await fetch('/api/product-config');
-            const data = await res.json();
-            setConfigs(Array.isArray(data) ? data : []);
+            const [configsRes, colorsRes] = await Promise.all([ fetch('/api/product-config'), fetch('/api/pots/colors') ]);
+            const configsData = await configsRes.json();
+            const colorsData = await colorsRes.json();
+            setConfigs(Array.isArray(configsData) ? configsData : []);
+            setAvailableColors(Array.isArray(colorsData) ? colorsData : []);
         } catch (error) { console.error('Failed to fetch configs:', error); }
     };
+
 
     const fetchShopifyProducts = async () => {
         setSyncLoading(true);
@@ -123,6 +130,46 @@ function ProductConfig() {
         } catch (error) { console.error('Save failed:', error); }
     };
 
+    const handleGenerateOpen = (product) => {
+        setGenerateData({ 
+            shopify_product_id: product.id.toString(), 
+            product_title: product.title, 
+            sizes: [{ name: '4" Pot', price: product.variants?.[0]?.price || '29.99', inventory: '100' }],
+            colors: availableColors.filter(c => c.is_active).map(c => c.name) 
+        });
+        setGenerateModalOpen(true);
+    };
+
+
+    const handleGenerateSubmit = async () => {
+        setActionLoading('generating');
+        try {
+            const sizesArr = generateData.sizes.filter(s => s.name.trim() !== '');
+            const colorsArr = availableColors.filter(c => generateData.colors.includes(c.name));
+            
+            const res = await fetch(`/api/products/${generateData.shopify_product_id}/generate-variants`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    sizesConfig: sizesArr,
+                    colors: colorsArr
+                })
+            });
+
+            if (res.ok) {
+                setGenerateModalOpen(false);
+                fetchAllData(); // Refresh everything from Shopify to see new variants
+            } else {
+                alert('Failed to generate variants');
+            }
+        } catch (e) {
+            console.error('Generation err:', e);
+        } finally {
+            setActionLoading(null);
+        }
+    };
+
+
     const configuredIds = configs.map(c => c.shopify_product_id.toString());
     const unconfiguredProducts = shopifyProducts.filter(p =>
         !configuredIds.includes(p.id?.toString()) &&
@@ -169,6 +216,7 @@ function ProductConfig() {
                                         </InlineStack>
 
                                         <InlineStack gap="200">
+                                            <Button size="slim" onClick={() => handleGenerateOpen(shopifyProduct)}>Insta-Build Variants</Button>
                                             <Badge tone={config.is_enabled ? 'success' : 'attention'}>
                                                 {config.is_enabled ? 'Live' : 'Hidden'}
                                             </Badge>
@@ -229,8 +277,12 @@ function ProductConfig() {
                                                 <Text tone="subdued" variant="bodySm">{(product.variants || []).length} variants available</Text>
                                             </BlockStack>
                                         </InlineStack>
-                                        <Button variant="primary" onClick={() => handleConfigSelect(product)}>Configure</Button>
+                                        <InlineStack gap="200">
+                                            <Button onClick={() => handleGenerateOpen(product)}>Insta-Build Variants</Button>
+                                            <Button variant="primary" onClick={() => handleConfigSelect(product)}>Configure</Button>
+                                        </InlineStack>
                                     </InlineStack>
+
                                 </ResourceItem>
                             )}
                         />
@@ -294,7 +346,95 @@ function ProductConfig() {
                     </FormLayout>
                 </Modal.Section>
             </Modal>
+
+            <Modal
+                open={generateModalOpen}
+                onClose={() => setGenerateModalOpen(false)}
+                title={`Generate Bundle Variants for ${generateData.product_title}`}
+                primaryAction={{ content: 'Generate & Push to Shopify', onAction: handleGenerateSubmit, loading: actionLoading === 'generating' }}
+                secondaryActions={[{ content: 'Cancel', onAction: () => setGenerateModalOpen(false) }]}
+            >
+                <Modal.Section>
+                    <FormLayout>
+                        <Banner tone="info">
+                            This will create a Size and Color grid directly in Shopify, replacing any existing variants. Perfect for fresh setups.
+                        </Banner>
+                        <Text variant="headingSm">Sizes, Prices & Inventory</Text>
+                        <BlockStack gap="300">
+                            {generateData.sizes?.map((size, idx) => (
+                                <InlineStack key={idx} gap="300" blockAlign="center">
+                                    <div style={{ flex: 2 }}>
+                                        <TextField 
+                                            label="Size Name" labelHidden
+                                            placeholder='e.g. 4" Pot'
+                                            value={size.name} 
+                                            onChange={v => {
+                                                const s = [...generateData.sizes];
+                                                s[idx].name = v;
+                                                setGenerateData({...generateData, sizes: s});
+                                            }} 
+                                        />
+                                    </div>
+                                    <div style={{ flex: 1 }}>
+                                        <TextField 
+                                            label="Price" labelHidden
+                                            prefix="$"
+                                            value={size.price} 
+                                            onChange={v => {
+                                                const s = [...generateData.sizes];
+                                                s[idx].price = v;
+                                                setGenerateData({...generateData, sizes: s});
+                                            }} 
+                                        />
+                                    </div>
+                                    <div style={{ flex: 1 }}>
+                                        <TextField 
+                                            label="Initial Inventory" labelHidden
+                                            type="number"
+                                            value={size.inventory} 
+                                            onChange={v => {
+                                                const s = [...generateData.sizes];
+                                                s[idx].inventory = v;
+                                                setGenerateData({...generateData, sizes: s});
+                                            }} 
+                                        />
+                                    </div>
+                                    <Button tone="critical" onClick={() => {
+                                        const s = generateData.sizes.filter((_, i) => i !== idx);
+                                        setGenerateData({...generateData, sizes: s});
+                                    }}>Remove</Button>
+                                </InlineStack>
+                            ))}
+                            <Button onClick={() => {
+                                setGenerateData({...generateData, sizes: [...generateData.sizes, { name: '', price: '29.99', inventory: '100' }]});
+                            }}>+ Add Another Size</Button>
+                        </BlockStack>
+                        
+                        <Divider />
+                        
+                        <Text variant="headingSm">Include Colors:</Text>
+
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+                            {availableColors.map(c => (
+                                <Badge 
+                                    key={c.id} 
+                                    tone={generateData.colors.includes(c.name) ? "success" : "new"}
+                                    progress={generateData.colors.includes(c.name) ? "complete" : "incomplete"}
+                                    onClick={() => {
+                                        const prev = generateData.colors;
+                                        const upd = prev.includes(c.name) ? prev.filter(x => x !== c.name) : [...prev, c.name];
+                                        setGenerateData({...generateData, colors: upd});
+                                    }}
+                                >
+                                    <span style={{ cursor: 'pointer' }}>{c.name} {generateData.colors.includes(c.name) && "✓"}</span>
+                                </Badge>
+                            ))}
+                        </div>
+                    </FormLayout>
+                </Modal.Section>
+            </Modal>
         </Page>
+
     );
 }
 

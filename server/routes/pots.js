@@ -32,13 +32,26 @@ router.put('/colors/:id', async (req, res) => {
     const { name, type, hex_code, display_order, is_active, image_url } = req.body;
     try {
         const result = await pool.query(
-            `UPDATE pot_colors SET name = COALESCE($1, name), type = COALESCE($2, type), hex_code = COALESCE($3, hex_code), display_order = COALESCE($4, display_order), is_active = COALESCE($5, is_active), image_url = COALESCE($6, image_url), updated_at = CURRENT_TIMESTAMP WHERE id = $7 RETURNING *`,
-            [name, type, hex_code, display_order, is_active, image_url, id]
+            `UPDATE pot_colors SET 
+                name = COALESCE($1, name), 
+                type = COALESCE($2, type), 
+                hex_code = COALESCE($3, hex_code), 
+                display_order = COALESCE($4, display_order), 
+                is_active = COALESCE($5, is_active), 
+                image_url = COALESCE($6, image_url), 
+                updated_at = CURRENT_TIMESTAMP 
+             WHERE id = $7 RETURNING *`,
+            [name || null, type || null, hex_code || null, display_order || null, is_active !== undefined ? is_active : null, image_url || null, id]
         );
+
+        if (result.rows.length === 0) {
+            return res.status(404).json({ error: 'Pot color not found' });
+        }
 
         await logActivity('POT_COLOR_UPDATED', `Updated pot color: ${result.rows[0].name}`, { color_id: id });
         res.json(result.rows[0]);
     } catch (error) {
+        console.error('Pot Update Error:', error);
         res.status(500).json({ error: error.message });
     }
 });

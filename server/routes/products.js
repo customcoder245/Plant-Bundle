@@ -122,4 +122,56 @@ router.get('/', async (req, res) => {
     }
 });
 
+// POST /api/products/:id/generate-variants
+router.post('/:id/generate-variants', async (req, res) => {
+    const shop = process.env.SHOPIFY_STORE_DOMAIN;
+    let accessToken = process.env.ADMIN_API || process.env.SHOPIFY_ACCESS_TOKEN;
+    const { id } = req.params;
+    const { sizesConfig, colors } = req.body;
+
+    if (!accessToken) return res.status(500).json({ error: 'No access token found' });
+
+    try {
+        const variants = [];
+        sizesConfig.forEach(sizeObj => {
+            colors.forEach(color => {
+                variants.push({
+                    option1: sizeObj.name,
+                    option2: color.name, // e.g. "White"
+                    price: sizeObj.price,
+                    inventory_management: 'shopify',
+                    inventory_quantity: parseInt(sizeObj.inventory) || 0
+                });
+            });
+        });
+
+        // 1. Update the product to have the right options
+        const shopifyResOptions = await fetch(`https://${shop}/admin/api/2023-10/products/${id}.json`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json', 'X-Shopify-Access-Token': accessToken },
+            body: JSON.stringify({
+                product: {
+                    id: id,
+                    options: [
+                        { name: "Size", values: sizesConfig.map(s => s.name) },
+                        { name: "Color", values: colors.map(c => c.name) }
+                    ],
+                    variants: variants
+                }
+            })
+        });
+
+        if (!shopifyResOptions.ok) {
+            const err = await shopifyResOptions.text();
+            throw new Error(err);
+        }
+
+        const data = await shopifyResOptions.json();
+        res.json({ success: true, product: data.product });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
 module.exports = router;
