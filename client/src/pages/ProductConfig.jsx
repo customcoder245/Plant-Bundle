@@ -16,7 +16,7 @@ function ProductConfig() {
     const [actionLoading, setActionLoading] = useState(null);
     const [modalOpen, setModalOpen] = useState(false);
     const [generateModalOpen, setGenerateModalOpen] = useState(false);
-    const [generateData, setGenerateData] = useState({ shopify_product_id: '', product_title: '', base_price: '29.99', sizes: 'Small, Medium, Large', colors: [] });
+    const [generateData, setGenerateData] = useState({ shopify_product_id: '', product_title: '', sizes: [], colors: [] });
     const [availableColors, setAvailableColors] = useState([]);
     const [searchQuery, setSearchQuery] = useState('');
 
@@ -373,7 +373,7 @@ function ProductConfig() {
                         </Banner>
                         <Text variant="headingSm">Sizes, Prices & Inventory</Text>
                         <BlockStack gap="300">
-                            {generateData.sizes?.map((size, idx) => (
+                            {Array.isArray(generateData.sizes) && generateData.sizes.map((size, idx) => (
                                 <InlineStack key={idx} gap="300" blockAlign="center">
                                     <div style={{ flex: 2 }}>
                                         <TextField
