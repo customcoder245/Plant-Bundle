@@ -25,31 +25,51 @@ async function processOrder(order, action = 'deduct') {
                 continue;
             }
 
-            // 2. Extract the Pot selection from Line Item Properties
-            // We search for many variations of "Pot" or "Color" to be safe
+            // 2. Extract the Pot selection
+            // A. Check Line Item Properties (Bundle Builder logic)
+            let potValue = '';
             const potColorProperty = lineItem.properties?.find(p => {
                 const name = p.name.toLowerCase();
                 return name.includes('pot') || name.includes('color');
             });
 
-            if (!potColorProperty) {
-                console.log(`No pot property found for ${lineItem.title}. User might have selected default or skipped choice.`);
+            if (potColorProperty) {
+                potValue = potColorProperty.value;
+            } else {
+                // B. Fallback: Check Variant Title (Insta-Build variants structure: "Size / Color")
+                // Parsing "4\" Pot / White" -> "White"
+                const variantTitle = lineItem.variant_title || '';
+                if (variantTitle.includes(' / ')) {
+                    const parts = variantTitle.split(' / ');
+                    potValue = parts[parts.length - 1].trim(); // Take the last part (Color)
+                    console.log(`Extracted color "${potValue}" from variant title: ${variantTitle}`);
+                }
+            }
+
+            if (!potValue) {
+                console.log(`No pot selection detected for ${lineItem.title} (ID: ${lineItem.variant_id}). Skipping.`);
                 continue;
             }
 
-            const potValue = potColorProperty.value;
-
-            // 3. Handle "NO POT" selection
-            if (potValue.toUpperCase() === 'NO POT') {
-                console.log(`User selected "No Pot" for ${lineItem.title}. No inventory deduction needed.`);
+            // 3. Handle "NO POT" or "Bare Root"
+            if (['NO POT', 'BARE ROOT', 'NONE'].includes(potValue.toUpperCase())) {
+                console.log(`User selected "${potValue}" for ${lineItem.title}. No inventory deduction needed.`);
                 continue;
             }
 
             // 4. Resolve Pot Color ID from Name
-            const colorResult = await client.query(
+            let colorResult = await client.query(
                 'SELECT id FROM pot_colors WHERE LOWER(name) = LOWER($1)',
                 [potValue]
             );
+
+            // Special case: sometimes name vs type mismatch. Check type too.
+            if (colorResult.rows.length === 0) {
+                colorResult = await client.query(
+                    'SELECT id FROM pot_colors WHERE LOWER(type) = LOWER($1)',
+                    [potValue]
+                );
+            }
 
             if (colorResult.rows.length === 0) {
                 console.warn(`Could not find color in DB matching: "${potValue}"`);
