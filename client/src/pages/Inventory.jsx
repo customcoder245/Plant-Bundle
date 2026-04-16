@@ -3,7 +3,7 @@ import {
     Page, Card, ResourceList, ResourceItem,
     TextField, Button, InlineStack, Badge, Text,
     Banner, BlockStack, Box, Divider, EmptyState,
-    SkeletonBodyText, Tabs
+    SkeletonBodyText, Tabs, Layout
 } from '@shopify/polaris';
 import { SaveIcon, RefreshIcon, SearchIcon } from '@shopify/polaris-icons';
 import { Box as BoxIcon, AlertTriangle } from 'lucide-react';
