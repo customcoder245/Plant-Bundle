@@ -56,6 +56,27 @@ router.post('/create', async (req, res) => {
         const shopifyProduct = shopifyData.product;
         const shopifyProductId = shopifyProduct.id;
 
+        // NEW: Add to "Houseplants for Sale" Collection (ID: 320337641590)
+        try {
+            await fetch(`https://${shop}/admin/api/2023-10/collects.json`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-Shopify-Access-Token': accessToken,
+                },
+                body: JSON.stringify({
+                    collect: {
+                        collection_id: 320337641590,
+                        product_id: shopifyProductId
+                    }
+                })
+            });
+            console.log(`Product ${shopifyProductId} added to Houseplants for Sale collection.`);
+        } catch (err) {
+            console.error('Failed to add to collection:', err.message);
+            // Non-fatal error for the product creation itself
+        }
+
         // Save configuration to Database
         const clientDb = await pool.connect();
         try {

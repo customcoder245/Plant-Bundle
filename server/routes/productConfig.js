@@ -50,6 +50,30 @@ router.post('/', async (req, res) => {
             }
         }
         await client.query('COMMIT');
+
+        // NEW: Add to "Houseplants for Sale" Collection (ID: 320337641590)
+        const shop = process.env.SHOPIFY_STORE_DOMAIN;
+        const accessToken = process.env.ADMIN_API || process.env.SHOPIFY_ACCESS_TOKEN;
+        if (accessToken) {
+            try {
+                await fetch(`https://${shop}/admin/api/2023-10/collects.json`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-Shopify-Access-Token': accessToken,
+                    },
+                    body: JSON.stringify({
+                        collect: {
+                            collection_id: 320337641590,
+                            product_id: shopify_product_id
+                        }
+                    })
+                });
+            } catch (err) {
+                console.error('Failed to add existing product to collection:', err.message);
+            }
+        }
+
         await logActivity('PRODUCT_CONFIGURED', `Configured product: ${product_title}`, { shopify_product_id });
         res.json(configResult.rows[0]);
     } catch (error) {
