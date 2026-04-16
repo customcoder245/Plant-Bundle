@@ -8,6 +8,52 @@ import {
 import { SaveIcon, RefreshIcon, SearchIcon } from '@shopify/polaris-icons';
 import { Box as BoxIcon, AlertTriangle } from 'lucide-react';
 
+// ─── RECENT MOVEMENTS COMPONENT ────────────────────────────────────────────────
+function RecentMovements() {
+    const [movements, setMovements] = useState([]);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        const fetchMovements = async () => {
+            try {
+                const res = await fetch('/api/activity?event_type=INVENTORY_DEDUCTED&limit=5');
+                const data = await res.json();
+                setMovements(Array.isArray(data) ? data : []);
+            } catch (e) { console.error(e); }
+            finally { setLoading(false); }
+        };
+        fetchMovements();
+    }, []);
+
+    if (loading) return <SkeletonBodyText lines={3} />;
+    if (movements.length === 0) return null;
+
+    return (
+        <Card>
+            <Box padding="400">
+                <BlockStack gap="300">
+                    <InlineStack gap="200">
+                        <AlertTriangle size={18} color="#c05621" />
+                        <Text variant="headingSm">Recent Stock Deductions</Text>
+                    </InlineStack>
+                    <Divider />
+                    {movements.map((m, i) => (
+                        <div key={i} style={{ padding: '8px 0', borderBottom: i < movements.length - 1 ? '1px solid #f1f2f3' : 'none' }}>
+                            <InlineStack align="space-between">
+                                <BlockStack gap="050">
+                                    <Text variant="bodyMd" fontWeight="semibold">{m.description}</Text>
+                                    <Text variant="bodyXs" tone="subdued">{new Date(m.created_at).toLocaleString()}</Text>
+                                </BlockStack>
+                                <Badge tone="warning">- {m.metadata?.quantity || 1}</Badge>
+                            </InlineStack>
+                        </div>
+                    ))}
+                </BlockStack>
+            </Box>
+        </Card>
+    );
+}
+
 // ─── POT STOCK TAB ─────────────────────────────────────────────────────────────
 function PotStockTab() {
     const [inventory, setInventory] = useState([]);
@@ -64,91 +110,99 @@ function PotStockTab() {
     if (loading && inventory.length === 0) return <SkeletonBodyText lines={15} />;
 
     return (
-        <BlockStack gap="500">
-            <InlineStack align="end" gap="200">
-                <Button onClick={fetchInventory} icon={RefreshIcon} variant="tertiary">Refresh</Button>
-                <Button onClick={handleSaveAll} loading={saving} disabled={!hasChanges} icon={SaveIcon} variant="primary">
-                    Save Inventory
-                </Button>
-            </InlineStack>
+        <Layout>
+            <Layout.Section>
+                <BlockStack gap="500">
+                    <InlineStack align="end" gap="200">
+                        <Button onClick={fetchInventory} icon={RefreshIcon} variant="tertiary">Refresh</Button>
+                        <Button onClick={handleSaveAll} loading={saving} disabled={!hasChanges} icon={SaveIcon} variant="primary">
+                            Save Inventory
+                        </Button>
+                    </InlineStack>
 
-            {lowStockItems.length > 0 && (
-                <Banner tone="warning" title={`${lowStockItems.length} items are low on stock`}>
-                    <p>Customers might see "Out of Stock" messages for these pot options soon.</p>
-                </Banner>
-            )}
+                    {lowStockItems.length > 0 && (
+                        <Banner tone="warning" title={`${lowStockItems.length} items are low on stock`}>
+                            <p>Customers might see "Out of Stock" messages for these pot options soon.</p>
+                        </Banner>
+                    )}
 
-            <Card padding="0">
-                <Box padding="400">
-                    <BlockStack gap="400">
-                        <InlineStack align="space-between" blockAlign="center">
-                            <InlineStack gap="200">
-                                <BoxIcon size={20} color="#636363" />
-                                <Text variant="headingMd">Stock Levels</Text>
-                            </InlineStack>
-                            {hasChanges && <Badge tone="attention">Unsaved changes</Badge>}
-                        </InlineStack>
-                        <TextField
-                            prefix={<SearchIcon style={{ width: 18 }} />}
-                            placeholder="Filter by color or size..."
-                            value={queryValue}
-                            onChange={setQueryValue}
-                            autoComplete="off"
-                            clearButton
-                            onClearButtonClick={() => setQueryValue('')}
+                    <Card padding="0">
+                        <Box padding="400">
+                            <BlockStack gap="400">
+                                <InlineStack align="space-between" blockAlign="center">
+                                    <InlineStack gap="200">
+                                        <BoxIcon size={20} color="#636363" />
+                                        <Text variant="headingMd">Stock Levels</Text>
+                                    </InlineStack>
+                                    {hasChanges && <Badge tone="attention">Unsaved changes</Badge>}
+                                </InlineStack>
+                                <TextField
+                                    prefix={<SearchIcon style={{ width: 18 }} />}
+                                    placeholder="Filter by color or size..."
+                                    value={queryValue}
+                                    onChange={setQueryValue}
+                                    autoComplete="off"
+                                    clearButton
+                                    onClearButtonClick={() => setQueryValue('')}
+                                />
+                            </BlockStack>
+                        </Box>
+                        <Divider />
+                        <ResourceList
+                            resourceName={{ singular: 'stock item', plural: 'stock items' }}
+                            items={filteredInventory}
+                            renderItem={(item) => (
+                                <ResourceItem id={item.id.toString()}>
+                                    <InlineStack align="space-between" blockAlign="center">
+                                        <InlineStack gap="400" blockAlign="center">
+                                            <div style={{
+                                                width: 40, height: 40,
+                                                backgroundColor: item.hex_code,
+                                                borderRadius: 8,
+                                                border: '2px solid rgba(0,0,0,0.05)',
+                                                boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.1)'
+                                            }} />
+                                            <BlockStack gap="050">
+                                                <Text variant="bodyMd" fontWeight="bold">{item.color_name}</Text>
+                                                <Text tone="subdued" variant="bodySm">Size: {item.size}</Text>
+                                            </BlockStack>
+                                        </InlineStack>
+                                        <InlineStack gap="400" blockAlign="center">
+                                            <div style={{ width: '120px' }}>
+                                                <TextField
+                                                    type="number" label="In Stock" labelHidden
+                                                    value={(editedQuantities[item.id] !== undefined ? editedQuantities[item.id] : item.quantity).toString()}
+                                                    onChange={(val) => handleQuantityChange(item.id, val)}
+                                                    autoComplete="off" suffix="Units" align="right"
+                                                />
+                                            </div>
+                                            <div style={{ minWidth: '100px', textAlign: 'right' }}>
+                                                {item.is_low_stock
+                                                    ? <Badge tone="warning">Low Stock</Badge>
+                                                    : <Badge tone="success">Healthy</Badge>
+                                                }
+                                            </div>
+                                        </InlineStack>
+                                    </InlineStack>
+                                </ResourceItem>
+                            )}
+                            emptyState={(
+                                <EmptyState
+                                    heading="No matching inventory"
+                                    image="https://cdn.shopify.com/s/files/1/0262/4071/2726/files/emptystate-files.png"
+                                >
+                                    <p>Adjust your filters or add new pot colors in the Colors tab.</p>
+                                </EmptyState>
+                            )}
                         />
-                    </BlockStack>
-                </Box>
-                <Divider />
-                <ResourceList
-                    resourceName={{ singular: 'stock item', plural: 'stock items' }}
-                    items={filteredInventory}
-                    renderItem={(item) => (
-                        <ResourceItem id={item.id.toString()}>
-                            <InlineStack align="space-between" blockAlign="center">
-                                <InlineStack gap="400" blockAlign="center">
-                                    <div style={{
-                                        width: 40, height: 40,
-                                        backgroundColor: item.hex_code,
-                                        borderRadius: 8,
-                                        border: '2px solid rgba(0,0,0,0.05)',
-                                        boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.1)'
-                                    }} />
-                                    <BlockStack gap="050">
-                                        <Text variant="bodyMd" fontWeight="bold">{item.color_name}</Text>
-                                        <Text tone="subdued" variant="bodySm">Size: {item.size}</Text>
-                                    </BlockStack>
-                                </InlineStack>
-                                <InlineStack gap="400" blockAlign="center">
-                                    <div style={{ width: '120px' }}>
-                                        <TextField
-                                            type="number" label="In Stock" labelHidden
-                                            value={(editedQuantities[item.id] !== undefined ? editedQuantities[item.id] : item.quantity).toString()}
-                                            onChange={(val) => handleQuantityChange(item.id, val)}
-                                            autoComplete="off" suffix="Units" align="right"
-                                        />
-                                    </div>
-                                    <div style={{ minWidth: '100px', textAlign: 'right' }}>
-                                        {item.is_low_stock
-                                            ? <Badge tone="warning">Low Stock</Badge>
-                                            : <Badge tone="success">Healthy</Badge>
-                                        }
-                                    </div>
-                                </InlineStack>
-                            </InlineStack>
-                        </ResourceItem>
-                    )}
-                    emptyState={(
-                        <EmptyState
-                            heading="No matching inventory"
-                            image="https://cdn.shopify.com/s/files/1/0262/4071/2726/files/emptystate-files.png"
-                        >
-                            <p>Adjust your filters or add new pot colors in the Colors tab.</p>
-                        </EmptyState>
-                    )}
-                />
-            </Card>
-        </BlockStack>
+                    </Card>
+                </BlockStack>
+            </Layout.Section>
+
+            <Layout.Section variant="oneThird">
+                <RecentMovements />
+            </Layout.Section>
+        </Layout>
     );
 }
 
