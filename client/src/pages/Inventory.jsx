@@ -157,9 +157,11 @@ function PotStockTab() {
                                         <InlineStack gap="400" blockAlign="center">
                                             <div style={{
                                                 width: 40, height: 40,
-                                                backgroundColor: item.hex_code,
+                                                backgroundColor: item.hex_code || (item.color_name.toLowerCase().includes('white') ? '#FFFFFF' : '#cccccc'),
                                                 borderRadius: 8,
-                                                border: '2px solid rgba(0,0,0,0.05)',
+                                                border: (item.hex_code?.toLowerCase() === '#ffffff' || item.color_name.toLowerCase().includes('white'))
+                                                    ? '1px solid #dfe3e8'
+                                                    : '2px solid rgba(0,0,0,0.05)',
                                                 boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.1)'
                                             }} />
                                             <BlockStack gap="050">
