@@ -146,9 +146,18 @@ router.get('/', async (req, res) => {
         const shopifyRes = await fetch(url, {
             headers: { 'X-Shopify-Access-Token': accessToken }
         });
+
+        if (!shopifyRes.ok) {
+            const errText = await shopifyRes.text();
+            console.error(`Shopify API Error (${shopifyRes.status}):`, errText);
+            return res.status(shopifyRes.status).json({ error: `Shopify Error: ${errText}` });
+        }
+
         const data = await shopifyRes.json();
+        console.log(`Successfully fetched ${data.products?.length || 0} products from collection ${collectionId}`);
         res.json(data.products || []);
     } catch (error) {
+        console.error('Fetch Error:', error);
         res.status(500).json({ error: error.message });
     }
 });
