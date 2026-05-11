@@ -134,7 +134,16 @@ router.get('/', async (req, res) => {
     }
 
     try {
-        const shopifyRes = await fetch(`https://${shop}/admin/api/2023-10/products.json`, {
+        const collectionId = process.env.SHOPIFY_COLLECTION_ID;
+        let url = `https://${shop}/admin/api/2023-10/products.json`;
+
+        // If collection ID is provided, fetch products from that specific collection
+        if (collectionId) {
+            console.log(`Fetching products specifically from collection: ${collectionId}`);
+            url = `https://${shop}/admin/api/2023-10/collections/${collectionId}/products.json`;
+        }
+
+        const shopifyRes = await fetch(url, {
             headers: { 'X-Shopify-Access-Token': accessToken }
         });
         const data = await shopifyRes.json();
