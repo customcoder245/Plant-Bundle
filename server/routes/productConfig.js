@@ -51,7 +51,8 @@ router.post('/', async (req, res) => {
         }
         await client.query('COMMIT');
 
-        // NEW: Add to "Houseplants for Sale" Collection (ID: 320337641590)
+        // NEW: Add to Collection
+        const collectionId = process.env.SHOPIFY_COLLECTION_ID || 320337641590;
         const shop = process.env.SHOPIFY_STORE_DOMAIN;
         const accessToken = process.env.ADMIN_API || process.env.SHOPIFY_ACCESS_TOKEN;
         if (accessToken) {
@@ -64,7 +65,7 @@ router.post('/', async (req, res) => {
                     },
                     body: JSON.stringify({
                         collect: {
-                            collection_id: 320337641590,
+                            collection_id: collectionId,
                             product_id: shopify_product_id
                         }
                     })
