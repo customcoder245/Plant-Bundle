@@ -41,33 +41,33 @@ router.post('/', upload.single('image'), async (req, res) => {
 
         // 2. Identify which variants to link this image to by matching Size AND Color
         let targetVariantIds = [];
-        
+
         // Fetch color name for matching
         const colorRes = await pool.query('SELECT name FROM pot_colors WHERE id = $1', [pot_color_id]);
         const colorName = colorRes.rows[0]?.name?.toLowerCase() || '';
 
         const allVariants = await pool.query('SELECT shopify_variant_id, variant_title, pot_size FROM size_mappings WHERE product_config_id = $1', [product_config_id]);
-        
+
         if (size.toLowerCase() === 'all') {
             // Find all variants that match the COLOR
             targetVariantIds = allVariants.rows
                 .filter(v => v.variant_title.toLowerCase().includes(colorName))
                 .map(v => v.shopify_variant_id);
-                
+
             // Fallback: If no color match found, just associate with all variants
             if (targetVariantIds.length === 0) targetVariantIds = allVariants.rows.map(v => v.shopify_variant_id);
         } else {
             // Precise Match: Must match the mapped internal size AND the specific color name in the title
             targetVariantIds = allVariants.rows
-                .filter(v => 
-                    v.pot_size.toLowerCase() === size.toLowerCase() && 
+                .filter(v =>
+                    v.pot_size.toLowerCase() === size.toLowerCase() &&
                     v.variant_title.toLowerCase().includes(colorName)
                 )
                 .map(v => v.shopify_variant_id);
-                
+
             // Fallback: If exact color match missing in title, just match by size
             if (targetVariantIds.length === 0) {
-                 targetVariantIds = allVariants.rows
+                targetVariantIds = allVariants.rows
                     .filter(v => v.pot_size.toLowerCase() === size.toLowerCase())
                     .map(v => v.shopify_variant_id);
             }
@@ -84,7 +84,7 @@ router.post('/', upload.single('image'), async (req, res) => {
                     'Content-Type': 'application/json',
                     'X-Shopify-Access-Token': accessToken
                 },
-                
+
                 body: JSON.stringify({
                     image: {
                         attachment: base64Image,
