@@ -134,24 +134,45 @@ router.get('/', async (req, res) => {
     }
 
     try {
-        // We use the direct products.json endpoint instead of collections endpoint.
-        // The REST Collections endpoint is known to severely truncate nested variants & options.
-        // Using direct products endpoint natively guarantees full sizes / colors.
-        const url = `https://${shop}/admin/api/2023-10/products.json?limit=250`;
+        const collectionId = process.env.SHOPIFY_COLLECTION_ID;
+        let products = [];
 
-        const shopifyRes = await fetch(url, {
-            headers: { 'X-Shopify-Access-Token': accessToken }
-        });
+        if (collectionId) {
+            // STEP 1: Fetch solely the IDs of products within the target collection securely
+            console.log(`Fetching product IDs from designated collection: ${collectionId}`);
+            const collectionRes = await fetch(`https://${shop}/admin/api/2023-10/collections/${collectionId}/products.json?fields=id&limit=250`, {
+                headers: { 'X-Shopify-Access-Token': accessToken }
+            });
 
-        if (!shopifyRes.ok) {
-            const errText = await shopifyRes.text();
-            console.error(`Shopify API Error (${shopifyRes.status}):`, errText);
-            return res.status(shopifyRes.status).json({ error: `Shopify Error: ${errText}` });
+            if (!collectionRes.ok) {
+                const errText = await collectionRes.text();
+                throw new Error(`Collection Data Access Error: ${errText}`);
+            }
+
+            const collectionData = await collectionRes.json();
+            const productIds = (collectionData.products || []).map(p => p.id);
+
+            // STEP 2: Fetch FULL detailed product variants leveraging pure IDs 
+            if (productIds.length > 0) {
+                const url = `https://${shop}/admin/api/2023-10/products.json?ids=${productIds.join(',')}&limit=250`;
+                const shopifyRes = await fetch(url, { headers: { 'X-Shopify-Access-Token': accessToken } });
+
+                if (!shopifyRes.ok) throw new Error(await shopifyRes.text());
+                const data = await shopifyRes.json();
+                products = data.products || [];
+            }
+        } else {
+            // Fallback gracefully just in case someone incorrectly clears collection ID from .env
+            const url = `https://${shop}/admin/api/2023-10/products.json?limit=250`;
+            const shopifyRes = await fetch(url, { headers: { 'X-Shopify-Access-Token': accessToken } });
+
+            if (!shopifyRes.ok) throw new Error(await shopifyRes.text());
+            const data = await shopifyRes.json();
+            products = data.products || [];
         }
 
-        const data = await shopifyRes.json();
-        console.log(`Successfully fetched ${data.products?.length || 0} full products directly from store view`);
-        res.json(data.products || []);
+        console.log(`Successfully fetched ${products.length} full products securely filtered`);
+        res.json(products);
     } catch (error) {
         console.error('Fetch Error:', error);
         res.status(500).json({ error: error.message });
