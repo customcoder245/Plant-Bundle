@@ -205,6 +205,7 @@ function ProductConfig() {
                         renderItem={(config) => {
                             const shopifyProduct = shopifyProducts.find(p => p.id.toString() === config.shopify_product_id.toString());
                             const imageUrl = shopifyProduct?.image?.src || "";
+                            const inventoryTotal = (shopifyProduct?.variants || []).reduce((sum, v) => sum + (v.inventory_quantity || 0), 0);
 
                             return (
                                 <ResourceItem id={config.id.toString()} verticalAlignment="center">
@@ -219,6 +220,7 @@ function ProductConfig() {
                                                     </Badge>
                                                     <Text tone="subdued" variant="bodySm">{(config.size_mappings || []).length} Sizes mapped</Text>
                                                     <Text tone="subdued" variant="bodySm">{(shopifyProduct?.variants || []).length} Shopify Variants</Text>
+                                                    <Text tone="subdued" variant="bodySm">Total inventory across all locations: {inventoryTotal} available</Text>
                                                 </InlineStack>
                                             </BlockStack>
                                         </InlineStack>
@@ -274,28 +276,32 @@ function ProductConfig() {
                         <ResourceList
                             items={unconfiguredProducts}
                             loading={syncLoading}
-                            renderItem={(product) => (
-                                <ResourceItem
-                                    id={product.id.toString()}
-                                    onClick={() => handleConfigSelect(product)}
-                                    verticalAlignment="center"
-                                >
-                                    <InlineStack align="space-between" blockAlign="center">
-                                        <InlineStack gap="400" blockAlign="center">
-                                            <Thumbnail source={product.image?.src || 'https://cdn.shopify.com/s/files/1/0262/4071/2726/files/emptystate-files.png'} alt={product.title} size="medium" />
-                                            <BlockStack>
-                                                <Text variant="bodyMd" fontWeight="bold">{product.title}</Text>
-                                                <Text tone="subdued" variant="bodySm">{(product.variants || []).length} variants available</Text>
-                                            </BlockStack>
+                            renderItem={(product) => {
+                                const inventoryTotal = (product.variants || []).reduce((sum, v) => sum + (v.inventory_quantity || 0), 0);
+                                return (
+                                    <ResourceItem
+                                        id={product.id.toString()}
+                                        onClick={() => handleConfigSelect(product)}
+                                        verticalAlignment="center"
+                                    >
+                                        <InlineStack align="space-between" blockAlign="center">
+                                            <InlineStack gap="400" blockAlign="center">
+                                                <Thumbnail source={product.image?.src || 'https://cdn.shopify.com/s/files/1/0262/4071/2726/files/emptystate-files.png'} alt={product.title} size="medium" />
+                                                <BlockStack>
+                                                    <Text variant="bodyMd" fontWeight="bold">{product.title}</Text>
+                                                    <Text tone="subdued" variant="bodySm">{(product.variants || []).length} variants available</Text>
+                                                    <Text tone="subdued" variant="bodySm">Total inventory across all locations: {inventoryTotal} available</Text>
+                                                </BlockStack>
+                                            </InlineStack>
+                                            <InlineStack gap="200">
+                                                <Button onClick={() => handleGenerateOpen(product)}>Insta-Build Variants</Button>
+                                                <Button variant="primary" onClick={() => handleConfigSelect(product)}>Configure</Button>
+                                            </InlineStack>
                                         </InlineStack>
-                                        <InlineStack gap="200">
-                                            <Button onClick={() => handleGenerateOpen(product)}>Insta-Build Variants</Button>
-                                            <Button variant="primary" onClick={() => handleConfigSelect(product)}>Configure</Button>
-                                        </InlineStack>
-                                    </InlineStack>
 
-                                </ResourceItem>
-                            )}
+                                    </ResourceItem>
+                                );
+                            }}
                         />
                     </div>
                 </Card>

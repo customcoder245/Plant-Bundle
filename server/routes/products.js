@@ -207,7 +207,40 @@ router.post('/:id/generate-variants', async (req, res) => {
         }
 
         const data = await shopifyResOptions.json();
-        res.json({ success: true, product: data.product });
+        const shopifyProduct = data.product;
+
+        // Auto-configure the product in our DB so it moves to "Configured Products"
+        const clientDb = await pool.connect();
+        try {
+            await clientDb.query('BEGIN');
+            const configResult = await clientDb.query(
+                `INSERT INTO product_pot_config (shopify_product_id, product_title, no_pot_discount) VALUES ($1, $2, 10.00) ON CONFLICT (shopify_product_id) DO UPDATE SET product_title = EXCLUDED.product_title, updated_at = CURRENT_TIMESTAMP RETURNING *`,
+                [shopifyProduct.id, shopifyProduct.title]
+            );
+            const configId = configResult.rows[0].id;
+
+            // Clear old mappings just in case
+            await clientDb.query('DELETE FROM size_mappings WHERE product_config_id = $1', [configId]);
+
+            // Add new mappings safely
+            if (shopifyProduct.variants && shopifyProduct.variants.length > 0) {
+                for (const v of shopifyProduct.variants) {
+                    await clientDb.query(
+                        `INSERT INTO size_mappings (product_config_id, shopify_variant_id, variant_title, pot_size) VALUES ($1, $2, $3, $4)`,
+                        [configId, v.id, v.title, v.option1]
+                    );
+                }
+            }
+            await clientDb.query('COMMIT');
+            await logActivity('PRODUCT_CONFIGURED', `Insta-built and configured product: ${shopifyProduct.title}`, { shopify_product_id: shopifyProduct.id });
+        } catch (e) {
+            await clientDb.query('ROLLBACK');
+            console.error("Database Save Error:", e.message);
+        } finally {
+            clientDb.release();
+        }
+
+        res.json({ success: true, product: shopifyProduct });
     } catch (err) {
         console.error(err);
         res.status(500).json({ error: err.message });

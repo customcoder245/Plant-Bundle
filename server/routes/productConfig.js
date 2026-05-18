@@ -36,7 +36,7 @@ router.post('/', async (req, res) => {
     try {
         await client.query('BEGIN');
         const configResult = await client.query(
-            `INSERT INTO product_pot_config (shopify_product_id, product_title, no_pot_discount) VALUES ($1, $2, $3) ON CONFLICT (shopify_product_id) DO UPDATE SET product_title = $2, no_pot_discount = $3, updated_at = CURRENT_TIMESTAMP RETURNING *`,
+            `INSERT INTO product_pot_config (shopify_product_id, product_title, no_pot_discount) VALUES ($1, $2, $3) ON CONFLICT (shopify_product_id) DO UPDATE SET product_title = EXCLUDED.product_title, no_pot_discount = EXCLUDED.no_pot_discount, updated_at = CURRENT_TIMESTAMP RETURNING *`,
             [shopify_product_id, product_title, no_pot_discount || 10.00]
         );
         const configId = configResult.rows[0].id;
