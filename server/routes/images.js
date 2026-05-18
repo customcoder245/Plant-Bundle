@@ -84,6 +84,7 @@ router.post('/', upload.single('image'), async (req, res) => {
                     'Content-Type': 'application/json',
                     'X-Shopify-Access-Token': accessToken
                 },
+                
                 body: JSON.stringify({
                     image: {
                         attachment: base64Image,
