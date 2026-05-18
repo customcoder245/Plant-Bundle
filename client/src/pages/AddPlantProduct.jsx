@@ -2,12 +2,199 @@ import React, { useState, useEffect } from 'react';
 import {
     Page, Layout, Card, FormLayout, TextField, Button,
     InlineStack, Select, BlockStack, Text, Box,
-    Divider, Banner, Badge, Tabs, Thumbnail, Spinner
+    Divider, Banner, Badge, Tabs, Thumbnail, Spinner,
+    Icon, Tag
 } from '@shopify/polaris';
-import { PlusIcon, DeleteIcon, SearchIcon, RefreshIcon } from '@shopify/polaris-icons';
+import {
+    PlusIcon, DeleteIcon, SearchIcon, RefreshIcon,
+    ChevronLeftIcon, DuplicateIcon, ViewIcon, ShareIcon,
+    MenuVerticalIcon, ImageIcon, CheckCircleIcon
+} from '@shopify/polaris-icons';
 
 /* ─────────────────────────────────────────────────────────────
-   TAB 1: Pick from existing Shopify products
+   COMPONENTS
+   ───────────────────────────────────────────────────────────── */
+
+function MediaUploadCard() {
+    return (
+        <Card>
+            <Box padding="400">
+                <BlockStack gap="400">
+                    <InlineStack align="space-between">
+                        <Text variant="headingMd">Media</Text>
+                        <Button variant="tertiary" size="slim">Add from URL</Button>
+                    </InlineStack>
+                    <div style={{
+                        border: '1px dashed #c4cdd5',
+                        borderRadius: '8px',
+                        padding: '40px',
+                        textAlign: 'center',
+                        background: '#f9fafb',
+                        cursor: 'pointer'
+                    }}>
+                        <BlockStack gap="200" align="center">
+                            <Icon source={ImageIcon} tone="subdued" />
+                            <Text variant="bodyMd" tone="subdued">Upload images or drag and drop</Text>
+                            <Button>Add</Button>
+                        </BlockStack>
+                    </div>
+                </BlockStack>
+            </Box>
+        </Card>
+    );
+}
+
+function VariantsCard({ variants, onAddVariant, onUpdateVariant, onRemoveVariant, potSizeOptions }) {
+    return (
+        <Card padding="0">
+            <Box padding="400">
+                <BlockStack gap="400">
+                    <InlineStack align="space-between" blockAlign="center">
+                        <Text variant="headingMd">Variants</Text>
+                        <Button onClick={onAddVariant} icon={PlusIcon} variant="plain">Add variant</Button>
+                    </InlineStack>
+                    <Text tone="subdued">Add sizes and map them to pot inventory categories.</Text>
+                </BlockStack>
+            </Box>
+            <Divider />
+
+            {variants.map((v, i) => (
+                <div key={i} style={{ borderBottom: i < variants.length - 1 ? '1px solid #f1f2f3' : 'none' }}>
+                    <Box padding="400">
+                        <FormLayout>
+                            <InlineStack gap="400" align="space-between" blockAlign="end">
+                                <div style={{ flex: 2 }}>
+                                    <TextField
+                                        label="Size Label"
+                                        value={v.title}
+                                        onChange={(val) => onUpdateVariant(i, 'title', val)}
+                                        placeholder="e.g. 4-inch Pot"
+                                        autoComplete="off"
+                                    />
+                                </div>
+                                <div style={{ flex: 1 }}>
+                                    <TextField
+                                        label="Price"
+                                        value={v.price}
+                                        onChange={(val) => onUpdateVariant(i, 'price', val)}
+                                        prefix="$"
+                                        type="number"
+                                        autoComplete="off"
+                                    />
+                                </div>
+                                <div style={{ flex: 1.5 }}>
+                                    <Select
+                                        label="Deducts from Pot Size"
+                                        options={potSizeOptions}
+                                        value={v.pot_size}
+                                        onChange={(val) => onUpdateVariant(i, 'pot_size', val)}
+                                    />
+                                </div>
+                                <Button
+                                    icon={DeleteIcon}
+                                    tone="critical"
+                                    onClick={() => onRemoveVariant(i)}
+                                    disabled={variants.length === 1}
+                                />
+                            </InlineStack>
+                        </FormLayout>
+                    </Box>
+                </div>
+            ))}
+        </Card>
+    );
+}
+
+function Sidebar({ status, setStatus, organization, setOrganization, tags, setTags }) {
+    const [tagInput, setTagInput] = useState('');
+
+    const handleAddTag = () => {
+        if (tagInput.trim() && !tags.includes(tagInput.trim())) {
+            setTags([...tags, tagInput.trim()]);
+            setTagInput('');
+        }
+    };
+
+    return (
+        <BlockStack gap="400">
+            <Card>
+                <Box padding="400">
+                    <BlockStack gap="300">
+                        <Text variant="headingMd">Status</Text>
+                        <Select
+                            label="Product Status"
+                            labelHidden
+                            options={[
+                                { label: 'Active', value: 'active' },
+                                { label: 'Draft', value: 'draft' },
+                                { label: 'Archived', value: 'archived' }
+                            ]}
+                            value={status}
+                            onChange={setStatus}
+                        />
+                    </BlockStack>
+                </Box>
+            </Card>
+
+            <Card>
+                <Box padding="400">
+                    <BlockStack gap="400">
+                        <Text variant="headingMd">Product organization</Text>
+                        <FormLayout>
+                            <TextField
+                                label="Type"
+                                value={organization.type}
+                                onChange={(v) => setOrganization({ ...organization, type: v })}
+                                autoComplete="off"
+                                placeholder="e.g. Drought-tolerant"
+                            />
+                            <TextField
+                                label="Vendor"
+                                value={organization.vendor}
+                                onChange={(v) => setOrganization({ ...organization, vendor: v })}
+                                autoComplete="off"
+                                placeholder="Planet Desert"
+                            />
+                            <TextField
+                                label="Collections"
+                                value={organization.collection}
+                                onChange={(v) => setOrganization({ ...organization, collection: v })}
+                                autoComplete="off"
+                                helpText="Add to target bundle collection"
+                            />
+                        </FormLayout>
+                    </BlockStack>
+                </Box>
+            </Card>
+
+            <Card>
+                <Box padding="400">
+                    <BlockStack gap="300">
+                        <Text variant="headingMd">Tags</Text>
+                        <TextField
+                            label="Add tags"
+                            labelHidden
+                            value={tagInput}
+                            onChange={setTagInput}
+                            onBlur={handleAddTag}
+                            onKeyPress={(e) => e.key === 'Enter' && handleAddTag()}
+                            autoComplete="off"
+                            placeholder="Watering_Needs:Low, Houseplant..."
+                        />
+                        <InlineStack gap="100">
+                            {tags.map((t, i) => (
+                                <Tag key={i} onRemove={() => setTags(tags.filter((_, idx) => idx !== i))}>{t}</Tag>
+                            ))}
+                        </InlineStack>
+                    </BlockStack>
+                </Box>
+            </Card>
+        </BlockStack>
+    );
+}
+
+/* ─────────────────────────────────────────────────────────────
+   PICK FROM SHOPIFY (TAB 1)
    ───────────────────────────────────────────────────────────── */
 function PickFromShopify({ onAdded }) {
     const [products, setProducts] = useState([]);
@@ -43,7 +230,7 @@ function PickFromShopify({ onAdded }) {
             const size_mappings = (product.variants || []).map(v => ({
                 shopify_variant_id: v.id,
                 variant_title: v.title,
-                pot_size: v.title === 'Default Title' ? 'Medium' : v.title
+                pot_size: v.title.includes('4') ? '4" Pot' : v.title.includes('6') ? '6" Pot' : v.title.includes('8') ? '8" Pot' : 'Medium'
             }));
             const res = await fetch('/api/product-config', {
                 method: 'POST',
@@ -58,7 +245,6 @@ function PickFromShopify({ onAdded }) {
             if (res.ok) {
                 setConfiguredIds(prev => new Set([...prev, String(product.id)]));
                 setMsg({ text: `✅ "${product.title}" is ready for pot bundling!`, type: 'success' });
-                if (onAdded) onAdded(product.title);
             } else {
                 const err = await res.json();
                 throw new Error(err.error);
@@ -79,14 +265,11 @@ function PickFromShopify({ onAdded }) {
     if (loading) return (
         <Box padding="800">
             <div style={{ textAlign: 'center' }}>
-                <div style={{
-                    width: 40, height: 40, border: '4px solid #e4e5e7',
-                    borderTop: '4px solid #008060', borderRadius: '50%',
-                    animation: 'spin 0.8s linear infinite', margin: '0 auto 12px'
-                }} />
-                <Text tone="subdued">Loading plants from Shopify…</Text>
+                <Spinner size="large" />
+                <Box marginTop="400">
+                    <Text tone="subdued">Syncing Shopify Plants…</Text>
+                </Box>
             </div>
-            <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
         </Box>
     );
 
@@ -98,18 +281,11 @@ function PickFromShopify({ onAdded }) {
                 </Banner>
             )}
 
-            <Banner tone="info">
-                <p>
-                    Select any plant from your Shopify store and click <strong>Enable Bundle</strong> to start configuring pot options for it.
-                    Products already enabled show a green badge.
-                </p>
-            </Banner>
-
             <Card padding="0">
                 <Box padding="400">
                     <InlineStack align="space-between" blockAlign="center">
                         <InlineStack gap="200">
-                            <Text variant="headingMd">🌿 Your Shopify Plants</Text>
+                            <Text variant="headingMd">Shopify Inventory</Text>
                             <Badge>{products.length} products</Badge>
                         </InlineStack>
                         <Button onClick={fetchAll} icon={RefreshIcon} variant="tertiary" size="slim">Refresh</Button>
@@ -128,298 +304,200 @@ function PickFromShopify({ onAdded }) {
                 </Box>
                 <Divider />
 
-                {filtered.length === 0 ? (
-                    <Box padding="800">
-                        <div style={{ textAlign: 'center', color: '#8c9196' }}>
-                            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" style={{ margin: '0 auto 12px', display: 'block', opacity: 0.4 }}>
-                                <circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" />
-                            </svg>
-                            <Text tone="subdued">No products match your search.</Text>
-                        </div>
-                    </Box>
-                ) : (
-                    <div style={{
-                        display: 'grid',
-                        gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))',
-                        gap: '1px',
-                        background: '#e1e3e5'
-                    }}>
-                        {filtered.map(product => {
-                            const isConfigured = configuredIds.has(String(product.id));
-                            const isAdding = addingId === product.id;
-                            const imgUrl = product.image?.src || product.images?.[0]?.src;
-                            const variants = product.variants || [];
-                            const prices = variants.map(v => parseFloat(v.price)).filter(Boolean);
-                            const price = prices.length
-                                ? (Math.min(...prices) === Math.max(...prices)
-                                    ? `$${Math.min(...prices).toFixed(2)}`
-                                    : `$${Math.min(...prices).toFixed(2)}–$${Math.max(...prices).toFixed(2)}`)
-                                : '';
-
-                            return (
-                                <div key={product.id} style={{ background: '#fff', display: 'flex', flexDirection: 'column' }}>
-                                    {/* Image */}
-                                    <div style={{ position: 'relative', height: 180, background: '#f6f6f7', overflow: 'hidden' }}>
-                                        {imgUrl ? (
-                                            <img
-                                                src={imgUrl} alt={product.title}
-                                                style={{ width: '100%', height: '100%', objectFit: 'cover', transition: 'transform 0.3s' }}
-                                                onMouseEnter={e => e.currentTarget.style.transform = 'scale(1.06)'}
-                                                onMouseLeave={e => e.currentTarget.style.transform = 'scale(1)'}
-                                            />
-                                        ) : (
-                                            <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#c4cdd5' }}>
-                                                <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-                                                    <rect x="3" y="3" width="18" height="18" rx="2" />
-                                                    <circle cx="8.5" cy="8.5" r="1.5" />
-                                                    <polyline points="21 15 16 10 5 21" />
-                                                </svg>
-                                            </div>
-                                        )}
-                                        {/* badges */}
-                                        <div style={{ position: 'absolute', top: 8, right: 8, display: 'flex', gap: 4, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
-                                            <span style={{
-                                                padding: '2px 8px', borderRadius: 20, fontSize: 11, fontWeight: 600,
-                                                background: product.status === 'active' ? '#d4edda' : '#fff3cd',
-                                                color: product.status === 'active' ? '#155724' : '#856404'
-                                            }}>
-                                                {product.status === 'active' ? '● Active' : '● Draft'}
-                                            </span>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '1px', background: '#f1f2f3' }}>
+                    {filtered.map(product => {
+                        const isConfigured = configuredIds.has(String(product.id));
+                        const imgUrl = product.image?.src || product.images?.[0]?.src;
+                        return (
+                            <div key={product.id} style={{ background: '#fff', padding: '16px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                                <div style={{ height: 180, background: '#f9fafb', borderRadius: 8, overflow: 'hidden', position: 'relative' }}>
+                                    <img src={imgUrl || 'https://cdn.shopify.com/s/files/1/0262/4071/2726/files/emptystate-files.png'} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                    {isConfigured && (
+                                        <div style={{ position: 'absolute', top: 8, right: 8 }}>
+                                            <Badge tone="success">Connected</Badge>
                                         </div>
-                                        {isConfigured && (
-                                            <div style={{ position: 'absolute', top: 8, left: 8 }}>
-                                                <span style={{ padding: '2px 8px', borderRadius: 20, fontSize: 11, fontWeight: 600, background: '#c6f6d5', color: '#22543d' }}>
-                                                    ✓ Bundle ON
-                                                </span>
-                                            </div>
-                                        )}
-                                    </div>
-
-                                    {/* Info */}
-                                    <div style={{ padding: '12px 14px', flex: 1, display: 'flex', flexDirection: 'column', gap: 6 }}>
-                                        <Text variant="bodyMd" fontWeight="semibold">{product.title}</Text>
-                                        {price && <Text variant="bodyMd" fontWeight="bold" tone="success">{price}</Text>}
-                                        {variants.length > 0 && (
-                                            <div style={{ fontSize: 12, color: '#8c9196', background: '#f6f6f7', borderRadius: 6, padding: '4px 8px' }}>
-                                                {variants.length} size{variants.length !== 1 ? 's' : ''}: {variants.slice(0, 3).map(v => v.title).join(', ')}{variants.length > 3 ? ` +${variants.length - 3}` : ''}
-                                            </div>
-                                        )}
-                                        <div style={{ marginTop: 'auto', paddingTop: 8 }}>
-                                            {isConfigured ? (
-                                                <div style={{
-                                                    textAlign: 'center', padding: '7px', borderRadius: 6,
-                                                    background: '#f0fff4', border: '1px solid #9ae6b4',
-                                                    color: '#276749', fontWeight: 600, fontSize: 13
-                                                }}>
-                                                    ✓ Pot Bundling Enabled
-                                                </div>
-                                            ) : (
-                                                <Button fullWidth variant="primary" loading={isAdding} onClick={() => addToBundle(product)}>
-                                                    Enable Bundle
-                                                </Button>
-                                            )}
-                                        </div>
-                                    </div>
+                                    )}
                                 </div>
-                            );
-                        })}
-                    </div>
-                )}
+                                <Text variant="bodyMd" fontWeight="semibold">{product.title}</Text>
+                                <div style={{ marginTop: 'auto' }}>
+                                    {isConfigured ? (
+                                        <Button fullWidth disabled icon={CheckCircleIcon}>Ready</Button>
+                                    ) : (
+                                        <Button fullWidth variant="primary" loading={addingId === product.id} onClick={() => addToBundle(product)}>Connect to Bundle</Button>
+                                    )}
+                                </div>
+                            </div>
+                        );
+                    })}
+                </div>
             </Card>
         </BlockStack>
     );
 }
 
 /* ─────────────────────────────────────────────────────────────
-   TAB 2: Create brand-new product in Shopify
+   CREATE NEW PRODUCT (TAB 2) - THE "PERFECT" UI
    ───────────────────────────────────────────────────────────── */
 function CreateNewProduct() {
-    const [formData, setFormData] = useState({
-        title: '',
-        description: '',
-        variants: [{ title: 'Small', price: '50.00', pot_size: 'Small' }],
-    });
+    const [title, setTitle] = useState('');
+    const [description, setDescription] = useState('');
+    const [status, setStatus] = useState('active');
+    const [organization, setOrganization] = useState({ type: '', vendor: '', collection: '' });
+    const [tags, setTags] = useState([]);
+    const [variants, setVariants] = useState([
+        { title: '4" Pot', price: '29.99', pot_size: '4" Pot' },
+        { title: '6" Pot', price: '45.99', pot_size: '6" Pot' }
+    ]);
     const [saving, setSaving] = useState(false);
     const [msg, setMsg] = useState({ text: '', type: '' });
 
     const potSizeOptions = [
-        { label: 'Small', value: 'Small' },
-        { label: 'Medium', value: 'Medium' },
-        { label: 'Large', value: 'Large' },
-        { label: 'Extra Large', value: 'Extra Large' },
+        { label: '4" Pot', value: '4" Pot' },
+        { label: '6" Pot', value: '6" Pot' },
+        { label: '8" Pot', value: '8" Pot' },
+        { label: 'Extra Large', value: 'Extra Large' }
     ];
 
-    const handleChange = (field, value) => setFormData({ ...formData, [field]: value });
-
-    const addVariant = () => setFormData({
-        ...formData,
-        variants: [...formData.variants, { title: '', price: '10.00', pot_size: 'Medium' }],
-    });
-
-    const updateVariant = (index, field, value) => {
-        const updated = [...formData.variants];
-        updated[index][field] = value;
-        setFormData({ ...formData, variants: updated });
+    const addVariant = () => setVariants([...variants, { title: '', price: '0.00', pot_size: '6" Pot' }]);
+    const removeVariant = (idx) => setVariants(variants.filter((_, i) => i !== idx));
+    const updateVariant = (idx, field, val) => {
+        const next = [...variants];
+        next[idx][field] = val;
+        setVariants(next);
     };
 
-    const removeVariant = (index) => setFormData({
-        ...formData,
-        variants: formData.variants.filter((_, i) => i !== index)
-    });
-
-    const handleSubmit = async () => {
-        if (!formData.title) { setMsg({ text: 'Please enter a product title.', type: 'error' }); return; }
+    const handleCreate = async () => {
+        if (!title) { setMsg({ text: 'Product title is required.', type: 'error' }); return; }
         setSaving(true);
-        setMsg({ text: '', type: '' });
         try {
             const res = await fetch('/api/products/create', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(formData),
+                body: JSON.stringify({
+                    title,
+                    description,
+                    variants: variants.map(v => ({ title: v.title, price: v.price, pot_size: v.pot_size }))
+                })
             });
             const data = await res.json();
             if (res.ok) {
-                setMsg({ text: `✅ "${formData.title}" created in Shopify and configured for pot bundling!`, type: 'success' });
-                setFormData({ title: '', description: '', variants: [{ title: 'Small', price: '50.00', pot_size: 'Small' }] });
+                setMsg({ text: `✅ "${title}" has been created and connected perfectly!`, type: 'success' });
+                // Reset form
+                setTitle(''); setDescription(''); setVariants([{ title: '4" Pot', price: '29.99', pot_size: '4" Pot' }]);
             } else {
-                throw new Error(data.error || 'Failed to create product');
+                throw new Error(data.error);
             }
-        } catch (error) {
-            setMsg({ text: `❌ ${error.message}`, type: 'error' });
+        } catch (e) {
+            setMsg({ text: `❌ ${e.message}`, type: 'error' });
         } finally {
             setSaving(false);
+            window.scrollTo({ top: 0, behavior: 'smooth' });
         }
     };
 
     return (
-        <Layout>
-            <Layout.Section>
-                <BlockStack gap="500">
-                    {msg.text && (
-                        <Banner tone={msg.type === 'success' ? 'success' : 'critical'}>
-                            <p>{msg.text}</p>
-                        </Banner>
-                    )}
+        <BlockStack gap="500">
+            {msg.text && (
+                <Banner tone={msg.type === 'success' ? 'success' : 'critical'}>
+                    <p>{msg.text}</p>
+                </Banner>
+            )}
 
-                    <Banner tone="info">
-                        This creates a brand-new product directly in your Shopify Admin and automatically enables it for pot bundling.
-                    </Banner>
-
-                    <Card>
-                        <Box padding="500">
-                            <FormLayout>
-                                <BlockStack gap="400">
-                                    <Text variant="headingMd">Basic Information</Text>
-                                    <TextField
-                                        label="Product Title"
-                                        value={formData.title}
-                                        onChange={(v) => handleChange('title', v)}
-                                        autoComplete="off"
-                                        placeholder="e.g. Madagascar Palm Plant"
-                                    />
-                                    <TextField
-                                        label="Public Description"
-                                        value={formData.description}
-                                        onChange={(v) => handleChange('description', v)}
-                                        multiline={4}
-                                        autoComplete="off"
-                                        placeholder="Describe this plant..."
-                                    />
-                                </BlockStack>
-                            </FormLayout>
-                        </Box>
-                    </Card>
-
-                    <Card padding="0">
-                        <Box padding="500">
-                            <BlockStack gap="400">
-                                <InlineStack align="space-between">
-                                    <Text variant="headingMd">Size Variants & Prices</Text>
-                                    <Badge tone="info">{formData.variants.length} variants</Badge>
-                                </InlineStack>
-                                <Text tone="subdued">Define different plant sizes and map them to pot categories.</Text>
-                            </BlockStack>
-                        </Box>
-                        <Divider />
-
-                        {formData.variants.map((variant, index) => (
-                            <Box key={index} padding="500" background={index % 2 === 1 ? 'bg-surface-secondary' : 'bg-surface'}>
+            <Layout>
+                <Layout.Section>
+                    <BlockStack gap="400">
+                        {/* Title & Description */}
+                        <Card>
+                            <Box padding="400">
                                 <FormLayout>
-                                    <InlineStack gap="400" align="space-between" blockAlign="end">
-                                        <div style={{ flex: 2 }}>
-                                            <TextField
-                                                label="Variant Name"
-                                                value={variant.title}
-                                                onChange={(v) => updateVariant(index, 'title', v)}
-                                                placeholder="e.g. 4-inch Pot"
-                                            />
+                                    <TextField
+                                        label="Title"
+                                        value={title}
+                                        onChange={setTitle}
+                                        placeholder="e.g. Rosemary Christmas Tree 'Salvia rosmarinus'"
+                                        autoComplete="off"
+                                    />
+                                    <div style={{ marginBottom: 4 }}>
+                                        <Text variant="bodyMd">Description</Text>
+                                    </div>
+                                    <div style={{ border: '1px solid #c4cdd5', borderRadius: 8, overflow: 'hidden' }}>
+                                        {/* Simplified Toolbar to mimic screenshot */}
+                                        <div style={{ background: '#f6f6f7', padding: '8px', borderBottom: '1px solid #c4cdd5', display: 'flex', gap: 8 }}>
+                                            <Button variant="tertiary" size="slim"><b>B</b></Button>
+                                            <Button variant="tertiary" size="slim"><i>I</i></Button>
+                                            <Button variant="tertiary" size="slim"><u>U</u></Button>
+                                            <Button variant="tertiary" size="slim">A</Button>
+                                            <Divider vertical />
+                                            <Button variant="tertiary" size="slim">List</Button>
+                                            <Button variant="tertiary" size="slim">Img</Button>
+                                            <div style={{ flex: 1 }} />
+                                            <Button variant="tertiary" size="slim">{'</>'}</Button>
                                         </div>
-                                        <div style={{ flex: 1 }}>
-                                            <TextField
-                                                label="Base Price"
-                                                value={variant.price}
-                                                onChange={(v) => updateVariant(index, 'price', v)}
-                                                type="number"
-                                                prefix="$"
-                                            />
-                                        </div>
-                                        <div style={{ flex: 1.5 }}>
-                                            <Select
-                                                label="Pot size mapping"
-                                                options={potSizeOptions}
-                                                value={variant.pot_size}
-                                                onChange={(v) => updateVariant(index, 'pot_size', v)}
-                                            />
-                                        </div>
-                                        <Button
-                                            tone="critical"
-                                            icon={DeleteIcon}
-                                            onClick={() => removeVariant(index)}
-                                            disabled={formData.variants.length === 1}
-                                        >
-                                            Remove
-                                        </Button>
-                                    </InlineStack>
+                                        <TextField
+                                            label="Description"
+                                            labelHidden
+                                            value={description}
+                                            onChange={setDescription}
+                                            multiline={12}
+                                            autoComplete="off"
+                                            placeholder="Introduce this beautiful plant to your customers..."
+                                            borderless
+                                        />
+                                    </div>
                                 </FormLayout>
                             </Box>
-                        ))}
+                        </Card>
 
-                        <Box padding="500">
-                            <Button onClick={addVariant} icon={PlusIcon}>Add Another Size Variant</Button>
-                        </Box>
-                    </Card>
+                        {/* Media */}
+                        <MediaUploadCard />
 
-                    <InlineStack align="end">
-                        <Button variant="primary" size="large" loading={saving} onClick={handleSubmit} icon={PlusIcon}>
-                            Create &amp; Sync to Shopify
-                        </Button>
-                    </InlineStack>
-                </BlockStack>
-            </Layout.Section>
+                        {/* Variants */}
+                        <VariantsCard
+                            variants={variants}
+                            onAddVariant={addVariant}
+                            onUpdateVariant={updateVariant}
+                            onRemoveVariant={removeVariant}
+                            potSizeOptions={potSizeOptions}
+                        />
 
-            <Layout.Section variant="oneThird">
-                <Card>
-                    <Box padding="400">
-                        <BlockStack gap="300">
-                            <Text variant="headingSm">💡 How it works</Text>
-                            <Text variant="bodySm" tone="subdued">
-                                1. Fill in the plant title and description.
-                            </Text>
-                            <Text variant="bodySm" tone="subdued">
-                                2. Add size variants (Small / Medium / Large) with prices.
-                            </Text>
-                            <Text variant="bodySm" tone="subdued">
-                                3. Map each size to a pot category so the system knows which pot inventory to deduct.
-                            </Text>
-                            <Divider />
-                            <Text variant="bodySm" tone="subdued">
-                                After creation, go to <strong>Product Config</strong> to manage pot pairing options, or <strong>Images</strong> to upload composite photos.
-                            </Text>
-                        </BlockStack>
-                    </Box>
-                </Card>
-            </Layout.Section>
-        </Layout>
+                        {/* Metafields Placeholder */}
+                        <Card>
+                            <Box padding="400">
+                                <BlockStack gap="400">
+                                    <Text variant="headingMd">Product metafields</Text>
+                                    <FormLayout>
+                                        <TextField label="Watering" placeholder="Every 2 weeks" autoComplete="off" />
+                                        <TextField label="Light Needs" placeholder="Full Sun" autoComplete="off" />
+                                        <TextField label="Difficulty" placeholder="Easy" autoComplete="off" />
+                                    </FormLayout>
+                                </BlockStack>
+                            </Box>
+                        </Card>
+                    </BlockStack>
+                </Layout.Section>
+
+                {/* Sidebar */}
+                <Layout.Section variant="oneThird">
+                    <Sidebar
+                        status={status}
+                        setStatus={setStatus}
+                        organization={organization}
+                        setOrganization={setOrganization}
+                        tags={tags}
+                        setTags={setTags}
+                    />
+                </Layout.Section>
+            </Layout>
+
+            <Divider />
+
+            <Box paddingBlockEnd="800">
+                <InlineStack align="end" gap="400">
+                    <Button size="large">Discard</Button>
+                    <Button variant="primary" size="large" loading={saving} onClick={handleCreate} icon={PlusIcon}>Save & Create Product</Button>
+                </InlineStack>
+            </Box>
+        </BlockStack>
     );
 }
 
@@ -430,21 +508,28 @@ function AddPlantProduct() {
     const [selectedTab, setSelectedTab] = useState(0);
 
     const tabs = [
-        { id: 'pick-existing', content: '🌿 Pick from Shopify Inventory', panelID: 'pick-panel' },
-        { id: 'create-new', content: '➕ Create New Product', panelID: 'create-panel' },
+        { id: 'pick-existing', content: 'Connect Existing', panelID: 'pick-panel' },
+        { id: 'create-new', content: 'Create Brand New', panelID: 'create-panel' },
     ];
 
     return (
         <Page
-            title="Add Plant Bundle"
-            subtitle="Enable a Shopify product for pot bundling, or create a brand-new one."
+            backAction={{ content: 'Dashboard', url: '/' }}
+            title={selectedTab === 1 ? "Add New Plant" : "Connect Shopify Product"}
+            subtitle="Everything you need to sync your plants with the pot bundling system."
+            primaryAction={selectedTab === 1 ? { content: 'Save Product', onAction: () => { }, variant: 'primary' } : null}
+            secondaryActions={[
+                { content: 'Duplicate', icon: DuplicateIcon },
+                { content: 'View', icon: ViewIcon },
+                { content: 'Share', icon: ShareIcon },
+            ]}
         >
             <BlockStack gap="400">
                 <Card padding="0">
                     <Tabs tabs={tabs} selected={selectedTab} onSelect={setSelectedTab} />
                 </Card>
 
-                <div style={{ marginTop: 4 }}>
+                <div style={{ marginTop: 8 }}>
                     {selectedTab === 0 ? <PickFromShopify /> : <CreateNewProduct />}
                 </div>
             </BlockStack>
