@@ -134,14 +134,10 @@ router.get('/', async (req, res) => {
     }
 
     try {
-        const collectionId = process.env.SHOPIFY_COLLECTION_ID;
-        let url = `https://${shop}/admin/api/2023-10/products.json`;
-
-        // If collection ID is provided, fetch products from that specific collection
-        if (collectionId) {
-            console.log(`Fetching products specifically from collection: ${collectionId}`);
-            url = `https://${shop}/admin/api/2023-10/collections/${collectionId}/products.json`;
-        }
+        // We use the direct products.json endpoint instead of collections endpoint.
+        // The REST Collections endpoint is known to severely truncate nested variants & options.
+        // Using direct products endpoint natively guarantees full sizes / colors.
+        const url = `https://${shop}/admin/api/2023-10/products.json?limit=250`;
 
         const shopifyRes = await fetch(url, {
             headers: { 'X-Shopify-Access-Token': accessToken }
@@ -154,7 +150,7 @@ router.get('/', async (req, res) => {
         }
 
         const data = await shopifyRes.json();
-        console.log(`Successfully fetched ${data.products?.length || 0} products from collection ${collectionId}`);
+        console.log(`Successfully fetched ${data.products?.length || 0} full products directly from store view`);
         res.json(data.products || []);
     } catch (error) {
         console.error('Fetch Error:', error);
