@@ -207,6 +207,21 @@ function ProductConfig() {
                             const imageUrl = shopifyProduct?.image?.src || "";
                             const inventoryTotal = (shopifyProduct?.variants || []).reduce((sum, v) => sum + (v.inventory_quantity || 0), 0);
 
+                            const groups = {};
+                            const hasVariants = shopifyProduct?.variants?.length > 0;
+                            if (hasVariants) {
+                                shopifyProduct.variants.forEach(v => {
+                                    const mapping = (config.size_mappings || []).find(m => m.shopify_variant_id?.toString() === v.id?.toString());
+                                    const sizeName = mapping ? mapping.pot_size : 'Unmapped';
+                                    if (!groups[sizeName]) {
+                                        groups[sizeName] = { variants: [], totalAvailable: 0, prices: [] };
+                                    }
+                                    groups[sizeName].variants.push(v);
+                                    groups[sizeName].totalAvailable += Math.max(0, parseInt(v.inventory_quantity || 0));
+                                    groups[sizeName].prices.push(parseFloat(v.price) || 0);
+                                });
+                            }
+
                             return (
                                 <ResourceItem id={config.id.toString()} verticalAlignment="center">
                                     <InlineStack align="space-between" blockAlign="center">
@@ -219,13 +234,12 @@ function ProductConfig() {
                                                         {config.is_enabled ? 'Active' : 'Disabled'}
                                                     </Badge>
                                                     <Text tone="subdued" variant="bodySm">{(config.size_mappings || []).length} Sizes mapped</Text>
-                                                    <Text tone="subdued" variant="bodySm">{(shopifyProduct?.variants || []).length} Shopify Variants</Text>
-                                                    <Text tone="subdued" variant="bodySm">Total inventory across all locations: {inventoryTotal} available</Text>
+                                                    <Text tone="subdued" variant="bodySm">{hasVariants ? shopifyProduct.variants.length : 0} Shopify Variants</Text>
                                                 </InlineStack>
                                             </BlockStack>
                                         </InlineStack>
 
-                                        <InlineStack gap="200">
+                                        <InlineStack gap="200" blockAlign="center">
                                             {shopifyProduct && (
                                                 <Button size="slim" onClick={() => handleGenerateOpen(shopifyProduct)}>Insta-Build Variants</Button>
                                             )}
@@ -239,6 +253,55 @@ function ProductConfig() {
                                             <Button variant="tertiary" tone="critical" onClick={() => handleDelete(config.id)} loading={actionLoading === config.id}>Remove</Button>
                                         </InlineStack>
                                     </InlineStack>
+
+                                    {/* Variant Grouping Table */}
+                                    {hasVariants && Object.keys(groups).length > 0 && (
+                                        <div style={{ marginTop: '16px', border: '1px solid #dfe3e8', borderRadius: '8px', overflow: 'hidden' }}>
+                                            <div style={{ background: '#f9fafb', padding: '12px 16px', borderBottom: '1px solid #dfe3e8', display: 'flex', alignItems: 'center' }}>
+                                                <div style={{ flex: 1.5 }}>
+                                                    <Text variant="bodySm" fontWeight="bold">Group by: Size</Text>
+                                                </div>
+                                                <div style={{ flex: 2 }}>
+                                                    <Text variant="bodySm" fontWeight="bold" tone="subdued">Price</Text>
+                                                </div>
+                                                <div style={{ flex: 1 }}>
+                                                    <Text variant="bodySm" fontWeight="bold" tone="subdued">Available</Text>
+                                                </div>
+                                            </div>
+                                            {Object.entries(groups).map(([size, data], idx) => {
+                                                const minPrice = Math.min(...data.prices);
+                                                const maxPrice = Math.max(...data.prices);
+                                                const priceStr = data.prices.length === 0 ? '-' : minPrice === maxPrice ? `$ ${minPrice.toFixed(2)}` : `$ ${minPrice.toFixed(2)} - ${maxPrice.toFixed(2)}`;
+
+                                                return (
+                                                    <div key={idx} style={{ padding: '12px 16px', borderBottom: '1px solid #dfe3e8', display: 'flex', alignItems: 'center' }}>
+                                                        <div style={{ flex: 1.5, display: 'flex', alignItems: 'center', gap: '12px' }}>
+                                                            <div style={{ width: 40, height: 40, background: '#fff', border: '1px solid #dfe3e8', borderRadius: 4, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                                                <div style={{ color: '#005bd3' }}>
+                                                                    <Leaf size={16} />
+                                                                </div>
+                                                            </div>
+                                                            <div>
+                                                                <Text variant="bodyMd" fontWeight="semibold">{size}</Text>
+                                                                <Text tone="subdued" variant="bodySm">{data.variants.length} variant{data.variants.length > 1 ? 's' : ''}</Text>
+                                                            </div>
+                                                        </div>
+                                                        <div style={{ flex: 2 }}>
+                                                            <div style={{ border: '1px solid #8c9196', padding: '4px 12px', borderRadius: '4px', display: 'inline-block', background: '#fff' }}>
+                                                                <Text variant="bodyMd">{priceStr}</Text>
+                                                            </div>
+                                                        </div>
+                                                        <div style={{ flex: 1 }}>
+                                                            <Text variant="bodyMd">{data.totalAvailable}</Text>
+                                                        </div>
+                                                    </div>
+                                                );
+                                            })}
+                                            <div style={{ background: '#f9fafb', padding: '12px 16px' }}>
+                                                <Text tone="subdued" variant="bodySm">Total inventory across all locations: {inventoryTotal} available</Text>
+                                            </div>
+                                        </div>
+                                    )}
                                 </ResourceItem>
                             );
                         }}
