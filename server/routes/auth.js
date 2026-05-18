@@ -9,4 +9,6 @@ router.get('/session', async (req, res) => {
     res.json({ shop: req.query.shop || 'demo-shop' });
 });
 
+
+
 module.exports = router;
