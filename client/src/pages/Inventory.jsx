@@ -61,6 +61,8 @@ function PotStockTab() {
     const [editedQuantities, setEditedQuantities] = useState({});
     const [saving, setSaving] = useState(false);
     const [queryValue, setQueryValue] = useState('');
+    const [syncing, setSyncing] = useState(false);
+    const [syncBanner, setSyncBanner] = useState(null);
 
     useEffect(() => { fetchInventory(); }, []);
 
@@ -74,6 +76,34 @@ function PotStockTab() {
             console.error('Failed to fetch inventory:', error);
         } finally {
             setLoading(false);
+        }
+    };
+
+    const handleSyncShopifyPots = async () => {
+        setSyncing(true);
+        setSyncBanner(null);
+        try {
+            const res = await fetch('/api/inventory/sync-pots', { method: 'POST' });
+            const data = await res.json();
+            if (res.ok && data.success) {
+                setSyncBanner({
+                    tone: 'success',
+                    title: 'Inventory Sync Complete',
+                    content: `Successfully synced ${data.updatedCount} pot variants from Shopify and pushed them to bundle products.`
+                });
+                fetchInventory();
+            } else {
+                throw new Error(data.error || 'Failed to synchronize pots.');
+            }
+        } catch (error) {
+            console.error('Pots sync error:', error);
+            setSyncBanner({
+                tone: 'critical',
+                title: 'Sync Failed',
+                content: error.message
+            });
+        } finally {
+            setSyncing(false);
         }
     };
 
@@ -114,11 +144,22 @@ function PotStockTab() {
             <Layout.Section>
                 <BlockStack gap="500">
                     <InlineStack align="end" gap="200">
+                        <Button onClick={handleSyncShopifyPots} loading={syncing} icon={RefreshIcon} variant="secondary">Sync Pots from Shopify</Button>
                         <Button onClick={fetchInventory} icon={RefreshIcon} variant="tertiary">Refresh</Button>
                         <Button onClick={handleSaveAll} loading={saving} disabled={!hasChanges} icon={SaveIcon} variant="primary">
                             Save Inventory
                         </Button>
                     </InlineStack>
+
+                    {syncBanner && (
+                        <Banner
+                            tone={syncBanner.tone}
+                            title={syncBanner.title}
+                            onDismiss={() => setSyncBanner(null)}
+                        >
+                            <p>{syncBanner.content}</p>
+                        </Banner>
+                    )}
 
                     {lowStockItems.length > 0 && (
                         <Banner tone="warning" title={`${lowStockItems.length} items are low on stock`}>
