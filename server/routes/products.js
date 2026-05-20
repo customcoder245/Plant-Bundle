@@ -143,6 +143,71 @@ router.post('/create', async (req, res) => {
     }
 });
 
+// POST /api/products/sync-config - Sync product titles & config with Shopify collection
+router.post('/sync-config', async (req, res) => {
+    const shop = process.env.SHOPIFY_STORE_DOMAIN;
+    const accessToken = process.env.ADMIN_API || process.env.SHOPIFY_ACCESS_TOKEN;
+    const collectionId = process.env.SHOPIFY_COLLECTION_ID;
+
+    if (!accessToken) {
+        return res.status(500).json({ error: 'SHOPIFY_ACCESS_TOKEN missing' });
+    }
+    if (!collectionId) {
+        return res.status(400).json({ error: 'SHOPIFY_COLLECTION_ID not set' });
+    }
+
+    try {
+        const collRes = await fetch(
+            `https://${shop}/admin/api/2023-10/collections/${collectionId}/products.json?fields=id&limit=250`,
+            { headers: { 'X-Shopify-Access-Token': accessToken } }
+        );
+        if (!collRes.ok) throw new Error('Failed to fetch collection product IDs');
+        const collData = await collRes.json();
+        const productIds = (collData.products || []).map(p => p.id);
+
+        let products = [];
+        if (productIds.length > 0) {
+            const prodRes = await fetch(
+                `https://${shop}/admin/api/2023-10/products.json?ids=${productIds.join(',')}&limit=250`,
+                { headers: { 'X-Shopify-Access-Token': accessToken } }
+            );
+            if (!prodRes.ok) throw new Error('Failed to fetch product details');
+            const data = await prodRes.json();
+            products = data.products || [];
+        }
+
+        const clientDb = await pool.connect();
+        try {
+            await clientDb.query('BEGIN');
+            for (const p of products) {
+                await clientDb.query(
+                    `INSERT INTO product_pot_config (shopify_product_id, product_title, no_pot_discount)
+                     VALUES ($1, $2, 10.00)
+                     ON CONFLICT (shopify_product_id) DO UPDATE SET product_title = EXCLUDED.product_title, updated_at = CURRENT_TIMESTAMP`,
+                    [p.id, p.title]
+                );
+            }
+            const dbIdsRes = await clientDb.query(`SELECT shopify_product_id FROM product_pot_config`);
+            const dbIds = dbIdsRes.rows.map(r => r.shopify_product_id);
+            const staleIds = dbIds.filter(id => !productIds.includes(id.toString()) && !productIds.includes(Number(id)));
+            if (staleIds.length) {
+                await clientDb.query('DELETE FROM product_pot_config WHERE shopify_product_id = ANY($1)', [staleIds]);
+            }
+            await clientDb.query('COMMIT');
+        } catch (e) {
+            await clientDb.query('ROLLBACK');
+            throw e;
+        } finally {
+            clientDb.release();
+        }
+
+        res.json({ success: true, synced: products.length, products });
+    } catch (error) {
+        console.error('Sync config error:', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
 // GET /api/products - Get all products from Shopify for configuration
 router.get('/', async (req, res) => {
     const shop = process.env.SHOPIFY_STORE_DOMAIN;

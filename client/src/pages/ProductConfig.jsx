@@ -3,7 +3,7 @@ import {
     Page, Layout, Card, ResourceList, ResourceItem, Text, Badge,
     Button, Modal, FormLayout, TextField, Select, BlockStack,
     InlineStack, EmptyState, Banner, SkeletonBodyText, Thumbnail,
-    Box, Divider
+    Box, Divider, Toast, Frame
 } from '@shopify/polaris';
 import { RefreshIcon, SearchIcon, SettingsIcon } from '@shopify/polaris-icons';
 import { Leaf } from 'lucide-react';
@@ -174,20 +174,41 @@ function ProductConfig() {
     };
 
 
+    const [isSyncing, setIsSyncing] = useState(false);
+    const [toastMsg, setToastMsg] = useState(null);
+
+    const handleSync = async () => {
+        setIsSyncing(true);
+        try {
+            const res = await fetch('/api/products/sync-config', { method: 'POST' });
+            const data = await res.json();
+            if (data.success) {
+                setToastMsg({ content: `✅ Synced ${data.synced} products`, status: 'success' });
+                fetchAllData();
+            } else {
+                throw new Error(data.error || 'Sync failed');
+            }
+        } catch (e) {
+            setToastMsg({ content: `⚠️ ${e.message}`, status: 'critical' });
+        } finally {
+            setIsSyncing(false);
+        }
+    };
+
     const configuredIds = (Array.isArray(configs) ? configs : []).map(c => c.shopify_product_id.toString());
     const unconfiguredProducts = (Array.isArray(shopifyProducts) ? shopifyProducts : []).filter(p =>
         !configuredIds.includes(p.id?.toString()) &&
         (p.title || '').toLowerCase().includes(searchQuery.toLowerCase())
     );
 
-
     if (loading) return <Page title="Manage Bundles"><SkeletonBodyText lines={20} /></Page>;
 
     return (
-        <Page
-            title="Manage Bundles"
-            primaryAction={{ content: 'Sync Shopify Products', onAction: fetchShopifyProducts, loading: syncLoading, icon: RefreshIcon }}
-        >
+        <Frame>
+            <Page
+                title="Manage Bundles"
+                primaryAction={{ content: 'Sync with Shopify', onAction: handleSync, loading: isSyncing, icon: RefreshIcon }}
+            >
             <BlockStack gap="600">
                 <Card>
                     <Box padding="400">
@@ -514,7 +535,15 @@ function ProductConfig() {
                     </FormLayout>
                 </Modal.Section>
             </Modal>
+            {toastMsg && (
+                <Toast
+                    content={toastMsg.content}
+                    onDismiss={() => setToastMsg(null)}
+                    error={toastMsg.status === 'critical'}
+                />
+            )}
         </Page>
+        </Frame>
 
     );
 }
