@@ -31,6 +31,35 @@ router.post('/create', async (req, res) => {
     try {
         console.log(`Attempting to create product "${title}" on ${shop}...`);
 
+        const productPayload = {
+            title,
+            body_html: description,
+        };
+
+        // If multi-option product is sent from front-end
+        if (req.body.options && req.body.options.length > 0) {
+            productPayload.options = req.body.options;
+            productPayload.variants = req.body.variants.map(v => ({
+                option1: v.option1,
+                option2: v.option2,
+                option3: v.option3,
+                price: v.price,
+                compare_at_price: v.compare_at_price || null,
+                inventory_management: v.inventory_management || 'shopify',
+                inventory_quantity: parseInt(v.inventory_quantity) || 0,
+                sku: v.sku || undefined,
+                barcode: v.barcode || undefined,
+                weight: v.weight ? parseFloat(v.weight) : undefined,
+                weight_unit: v.weight_unit || 'lb'
+            }));
+        } else {
+            // Legacy single-option product support
+            productPayload.variants = variants.map(v => ({
+                option1: v.title,
+                price: v.price
+            }));
+        }
+
         const shopifyRes = await fetch(`https://${shop}/admin/api/2023-10/products.json`, {
             method: 'POST',
             headers: {
@@ -38,11 +67,7 @@ router.post('/create', async (req, res) => {
                 'X-Shopify-Access-Token': accessToken,
             },
             body: JSON.stringify({
-                product: {
-                    title,
-                    body_html: description,
-                    variants: variants.map(v => ({ option1: v.title, price: v.price })),
-                },
+                product: productPayload,
             }),
         });
 
@@ -88,10 +113,16 @@ router.post('/create', async (req, res) => {
             );
             const configId = configResult.rows[0].id;
 
-            for (let i = 0; i < variants.length; i++) {
+            // Iterate over the created Shopify variants to save mappings
+            for (let i = 0; i < shopifyProduct.variants.length; i++) {
+                const shopifyVariant = shopifyProduct.variants[i];
+                // Find matching input variant or fallback
+                const inputVariant = (req.body.variants && req.body.variants[i]) || {};
+                const potSize = inputVariant.pot_size || shopifyVariant.option1 || '4" Pot';
+
                 await clientDb.query(
                     `INSERT INTO size_mappings (product_config_id, shopify_variant_id, variant_title, pot_size) VALUES ($1, $2, $3, $4)`,
-                    [configId, shopifyProduct.variants[i].id, variants[i].title, variants[i].pot_size]
+                    [configId, shopifyVariant.id, shopifyVariant.title, potSize]
                 );
             }
             await clientDb.query('COMMIT');
