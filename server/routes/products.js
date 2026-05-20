@@ -4,6 +4,23 @@ const pool = require('../db/pool');
 const { logActivity } = require('../services/activityService');
 const { shopify } = require('../index');
 
+function predictPotSize(optionValue) {
+    const shop = (optionValue || '').toLowerCase().trim();
+    if (shop.includes('2"') || shop.includes('3"') || shop.includes('4"') || shop.includes('2 inch') || shop.includes('4 inch') || shop.includes('small') || shop.includes('2') || shop.includes('4')) {
+        return 'Small';
+    }
+    if (shop.includes('6"') || shop.includes('8"') || shop.includes('6 inch') || shop.includes('8 inch') || shop.includes('medium') || shop.includes('standard') || shop.includes('6') || shop.includes('8')) {
+        return 'Medium';
+    }
+    if (shop.includes('10"') || shop.includes('10 inch') || shop.includes('large') || shop.includes('10') || shop.includes('gal')) {
+        return 'Large';
+    }
+    if (shop.includes('12"') || shop.includes('14"') || shop.includes('12 inch') || shop.includes('xl') || shop.includes('extra-large') || shop.includes('extra large') || shop.includes('12') || shop.includes('14')) {
+        return 'Extra Large';
+    }
+    return 'Medium';
+}
+
 // POST /api/products/create - Create a new plant product in Shopify and configure it
 router.post('/create', async (req, res) => {
     const shop = process.env.SHOPIFY_STORE_DOMAIN;
@@ -118,7 +135,7 @@ router.post('/create', async (req, res) => {
                 const shopifyVariant = shopifyProduct.variants[i];
                 // Find matching input variant or fallback
                 const inputVariant = (req.body.variants && req.body.variants[i]) || {};
-                const potSize = inputVariant.pot_size || shopifyVariant.option1 || '4" Pot';
+                const potSize = inputVariant.pot_size || predictPotSize(shopifyVariant.option1 || shopifyVariant.title);
 
                 await clientDb.query(
                     `INSERT INTO size_mappings (product_config_id, shopify_variant_id, variant_title, pot_size) VALUES ($1, $2, $3, $4)`,
@@ -192,15 +209,30 @@ router.post('/sync-config', async (req, res) => {
 
                 // Sync exact variant names (sizes) from Shopify
                 if (p.variants && p.variants.length > 0) {
+                    // Fetch existing mappings to preserve user configuration
+                    const existingRes = await clientDb.query(
+                        'SELECT shopify_variant_id, pot_size FROM size_mappings WHERE product_config_id = $1',
+                        [configId]
+                    );
+                    const existingMap = new Map();
+                    for (const row of existingRes.rows) {
+                        existingMap.set(String(row.shopify_variant_id), row.pot_size);
+                    }
+
                     // Clear old mappings to perfectly reflect Shopify's current variants
                     await clientDb.query('DELETE FROM size_mappings WHERE product_config_id = $1', [configId]);
                     
                     for (const v of p.variants) {
-                        const sizeName = v.option1 || v.title || 'Unmapped';
+                        const vIdStr = String(v.id);
+                        let potSize = existingMap.get(vIdStr);
+                        if (!potSize) {
+                            potSize = predictPotSize(v.option1 || v.title);
+                        }
+                        
                         await clientDb.query(
                             `INSERT INTO size_mappings (product_config_id, shopify_variant_id, variant_title, pot_size) 
                              VALUES ($1, $2, $3, $4)`,
-                            [configId, v.id, v.title, sizeName]
+                            [configId, v.id, v.title, potSize]
                         );
                     }
                 }
@@ -356,9 +388,10 @@ router.post('/:id/generate-variants', async (req, res) => {
             // Add new mappings safely
             if (shopifyProduct.variants && shopifyProduct.variants.length > 0) {
                 for (const v of shopifyProduct.variants) {
+                    const potSize = predictPotSize(v.option1 || v.title);
                     await clientDb.query(
                         `INSERT INTO size_mappings (product_config_id, shopify_variant_id, variant_title, pot_size) VALUES ($1, $2, $3, $4)`,
-                        [configId, v.id, v.title, v.option1]
+                        [configId, v.id, v.title, potSize]
                     );
                 }
             }
