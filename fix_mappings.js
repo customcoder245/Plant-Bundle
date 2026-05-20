@@ -6,10 +6,10 @@ function predictPotSize(optionValue) {
     if (shop.includes('2"') || shop.includes('3"') || shop.includes('4"') || shop.includes('2 inch') || shop.includes('4 inch') || shop.includes('small') || shop.includes('2') || shop.includes('4')) {
         return 'Small';
     }
-    if (shop.includes('6"') || shop.includes('8"') || shop.includes('6 inch') || shop.includes('8 inch') || shop.includes('medium') || shop.includes('standard') || shop.includes('6') || shop.includes('8')) {
+    if (shop.includes('6"') || shop.includes('6 inch') || shop.includes('medium') || shop.includes('standard') || shop.includes('6')) {
         return 'Medium';
     }
-    if (shop.includes('10"') || shop.includes('10 inch') || shop.includes('large') || shop.includes('10') || shop.includes('gal')) {
+    if (shop.includes('8"') || shop.includes('10"') || shop.includes('8 inch') || shop.includes('10 inch') || shop.includes('large') || shop.includes('8') || shop.includes('10') || shop.includes('gal')) {
         return 'Large';
     }
     if (shop.includes('12"') || shop.includes('14"') || shop.includes('12 inch') || shop.includes('xl') || shop.includes('extra-large') || shop.includes('extra large') || shop.includes('12') || shop.includes('14')) {

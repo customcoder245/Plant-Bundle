@@ -94,8 +94,8 @@ function ProductConfig() {
             const title = (v.title || '').toLowerCase();
             let predictedSize = 'Medium';
             if (title.includes('2') || title.includes('small') || title.includes('4')) predictedSize = 'Small';
-            if (title.includes('6') || title.includes('8') || title.includes('standard')) predictedSize = 'Medium';
-            if (title.includes('10') || title.includes('large') || title.includes('gal')) predictedSize = 'Large';
+            if (title.includes('6') || title.includes('standard')) predictedSize = 'Medium';
+            if (title.includes('8') || title.includes('10') || title.includes('large') || title.includes('gal')) predictedSize = 'Large';
 
             return {
                 shopify_variant_id: v.id?.toString() || '',
