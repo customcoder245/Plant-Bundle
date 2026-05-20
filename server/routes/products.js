@@ -180,12 +180,30 @@ router.post('/sync-config', async (req, res) => {
         try {
             await clientDb.query('BEGIN');
             for (const p of products) {
-                await clientDb.query(
+                const configResult = await clientDb.query(
                     `INSERT INTO product_pot_config (shopify_product_id, product_title, no_pot_discount)
                      VALUES ($1, $2, 10.00)
-                     ON CONFLICT (shopify_product_id) DO UPDATE SET product_title = EXCLUDED.product_title, updated_at = CURRENT_TIMESTAMP`,
+                     ON CONFLICT (shopify_product_id) DO UPDATE SET product_title = EXCLUDED.product_title, updated_at = CURRENT_TIMESTAMP
+                     RETURNING id`,
                     [p.id, p.title]
                 );
+                
+                const configId = configResult.rows[0].id;
+
+                // Sync exact variant names (sizes) from Shopify
+                if (p.variants && p.variants.length > 0) {
+                    // Clear old mappings to perfectly reflect Shopify's current variants
+                    await clientDb.query('DELETE FROM size_mappings WHERE product_config_id = $1', [configId]);
+                    
+                    for (const v of p.variants) {
+                        const sizeName = v.option1 || v.title || 'Unmapped';
+                        await clientDb.query(
+                            `INSERT INTO size_mappings (product_config_id, shopify_variant_id, variant_title, pot_size) 
+                             VALUES ($1, $2, $3, $4)`,
+                            [configId, v.id, v.title, sizeName]
+                        );
+                    }
+                }
             }
             const dbIdsRes = await clientDb.query(`SELECT shopify_product_id FROM product_pot_config`);
             const dbIds = dbIdsRes.rows.map(r => r.shopify_product_id);
