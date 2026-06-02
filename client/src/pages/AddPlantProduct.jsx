@@ -948,14 +948,14 @@ function CreateNewProduct() {
         setExpandedGroups(next);
     };
 
-    // Save individual variant settings in editing sub-page
-    const handleSaveVariant = (index, updatedObj) => {
-        const next = [...variants];
-        next[index] = updatedObj;
-        setVariants(next);
+    // Save individual variant settings (Disabled until editor is updated for split structure)
+    const handleSaveVariant = (index, updatedObj, type) => {
+        if (type === 'plant') {
+            setPlantVariants(prev => prev.map((v, i) => i === index ? updatedObj : v));
+        } else {
+            setPotVariants(prev => prev.map((v, i) => i === index ? updatedObj : v));
+        }
         setEditingVariantIndex(null);
-        setMsg({ text: `Variant "${updatedObj.title}" updated successfully.`, type: 'success' });
-        setTimeout(() => setMsg({ text: '', type: '' }), 4000);
     };
 
     const combinedVariants = [
@@ -1352,7 +1352,7 @@ function CreateNewProduct() {
                         onClick={handleCreate}
                         icon={PlusIcon}
                     >
-                        Save & Create Product ({variants.length} Variants)
+                        Save & Create Product ({plantVariants.length + potVariants.length} Variants)
                     </Button>
                 </InlineStack>
             </Box>
