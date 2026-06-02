@@ -824,10 +824,14 @@ function CreateNewProduct() {
     const [saving, setSaving] = useState(false);
     const [msg, setMsg] = useState({ text: '', type: '' });
 
+    // Bundle Creation Mode
+    const [bundleMode, setBundleMode] = useState('split'); // 'split' (2 products) or 'merged' (1 product)
+
     // Active sub-page editor state
     const [editingVariantIndex, setEditingVariantIndex] = useState(null);
+    const [editingVariantType, setEditingVariantType] = useState('plant'); // 'plant' or 'pot'
 
-    // Group By dashboard setting (Image 1)
+    // Group By dashboard setting
     const [groupBy, setGroupBy] = useState('Size');
     const [expandedGroups, setExpandedGroups] = useState(new Set());
 
@@ -985,46 +989,77 @@ function CreateNewProduct() {
         if (!title) { setMsg({ text: 'Product title is required.', type: 'error' }); return; }
         setSaving(true);
         try {
-            // Create Plant Product
-            const plantRes = await fetch('/api/products/create', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    title: title,
-                    description,
-                    options: plantOptions.map(o => ({ name: o.name, values: o.values })),
-                    variants: plantVariants.map(v => ({
-                        option1: v.option1,
-                        price: v.price,
-                        inventory_quantity: parseInt(v.inventory_quantity) || 0,
-                    }))
-                })
-            });
+            if (bundleMode === 'merged') {
+                // Generate merged combinations (Size x Color)
+                const combos = generateCombinations([...plantOptions, { name: 'Pot Color', values: potOptions.find(o => o.name === 'Pot Color')?.values || [] }]);
+                const mergedVariants = combos.map(combo => {
+                    const size = combo[0]?.value || '';
+                    const color = combo[1]?.value || '';
+                    return {
+                        option1: size,
+                        option2: color,
+                        price: '45.00',
+                        inventory_quantity: 50
+                    };
+                });
 
-            // Create Pot Product
-            const potRes = await fetch('/api/products/create', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    title: title + " Pots",
-                    description: `Pots for ${title}`,
-                    options: potOptions.map(o => ({ name: o.name, values: o.values })),
-                    variants: potVariants.map(v => ({
-                        option1: v.option1,
-                        option2: v.option2,
-                        price: v.price,
-                        inventory_quantity: parseInt(v.inventory_quantity) || 0,
-                    }))
-                })
-            });
-
-            if (plantRes.ok && potRes.ok) {
-                setMsg({ text: `✅ 2 Products ("${title}" and "${title} Pots") have been created successfully!`, type: 'success' });
-                setTitle('');
-                setDescription('');
+                const res = await fetch('/api/products/create', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        title: title,
+                        description,
+                        options: [
+                            { name: 'Size', values: plantOptions[0].values },
+                            { name: 'Pot Color', values: potOptions.find(o => o.name === 'Pot Color')?.values || [] }
+                        ],
+                        variants: mergedVariants
+                    })
+                });
+                if (!res.ok) throw new Error('Failed to create merged product');
+                setMsg({ text: `✅ Merged Product "${title}" created with ${mergedVariants.length} variants!`, type: 'success' });
             } else {
-                throw new Error('Failed to create one or both products.');
+                // Create Plant Product
+                const plantRes = await fetch('/api/products/create', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        title: title,
+                        description,
+                        options: plantOptions.map(o => ({ name: o.name, values: o.values })),
+                        variants: plantVariants.map(v => ({
+                            option1: v.option1,
+                            price: v.price,
+                            inventory_quantity: parseInt(v.inventory_quantity) || 0,
+                        }))
+                    })
+                });
+
+                // Create Pot Product
+                const potRes = await fetch('/api/products/create', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        title: title + " Pots",
+                        description: `Pots for ${title}`,
+                        options: potOptions.map(o => ({ name: o.name, values: o.values })),
+                        variants: potVariants.map(v => ({
+                            option1: v.option1,
+                            option2: v.option2,
+                            price: v.price,
+                            inventory_quantity: parseInt(v.inventory_quantity) || 0,
+                        }))
+                    })
+                });
+
+                if (plantRes.ok && potRes.ok) {
+                    setMsg({ text: `✅ 2 Products ("${title}" and "${title} Pots") created successfully!`, type: 'success' });
+                } else {
+                    throw new Error('Failed to create one or both products.');
+                }
             }
+            setTitle('');
+            setDescription('');
         } catch (e) {
             setMsg({ text: `❌ ${e.message}`, type: 'error' });
         } finally {
@@ -1034,8 +1069,22 @@ function CreateNewProduct() {
     };
 
     const totalAvailable = [...plantVariants, ...potVariants].reduce((acc, curr) => acc + (parseInt(curr.inventory_quantity) || 0), 0);
-
     const groupedVariants = getGroupedVariants();
+
+    // Render detailed editor sub-page if a variant is selected
+    if (editingVariantIndex !== null) {
+        const variantsList = editingVariantType === 'plant' ? plantVariants : potVariants;
+        return (
+            <DetailedVariantDetailsEditor
+                productTitle={title}
+                variants={variantsList}
+                editingIndex={editingVariantIndex}
+                setEditingIndex={setEditingVariantIndex}
+                onSaveVariant={(idx, obj) => handleSaveVariant(idx, obj, editingVariantType)}
+                onCancel={() => setEditingVariantIndex(null)}
+            />
+        );
+    }
 
     return (
         <BlockStack gap="500">
@@ -1098,13 +1147,25 @@ function CreateNewProduct() {
                                 <BlockStack gap="400">
                                     <InlineStack align="space-between" blockAlign="center">
                                         <Text variant="headingMd">Variants</Text>
-                                        <Button
-                                            onClick={() => setEditingVariantIndex(0)}
-                                            icon={PlusIcon}
-                                            variant="plain"
-                                        >
-                                            + Add variant
-                                        </Button>
+                                        <InlineStack gap="300">
+                                            <Select
+                                                label="Sync Mode"
+                                                labelHidden
+                                                options={[
+                                                    { label: 'Create 2 Products (Split)', value: 'split' },
+                                                    { label: 'Create 1 Product (Merged)', value: 'merged' }
+                                                ]}
+                                                value={bundleMode}
+                                                onChange={setBundleMode}
+                                            />
+                                            <Button
+                                                onClick={() => setEditingVariantIndex(0)}
+                                                icon={PlusIcon}
+                                                variant="plain"
+                                            >
+                                                + Add variant
+                                            </Button>
+                                        </InlineStack>
                                     </InlineStack>
 
                                     {/* Separate sections for Plant and Pot options */}
@@ -1222,21 +1283,35 @@ function CreateNewProduct() {
                                         const isExpanded = expandedGroups.has(g.title);
                                         return (
                                             <React.Fragment key={g.title}>
-                                                <tr style={{ borderBottom: '1px solid #e1e3e5', background: isExpanded ? '#f9fafb' : '#ffffff' }}>
-                                                    <td style={{ padding: '12px 16px' }}><input type="checkbox" style={{ cursor: 'pointer' }} /></td>
-                                                    <td style={{ padding: '12px 16px' }}>
-                                                        <InlineStack gap="300" blockAlign="center">
-                                                            <div style={{ width: '40px', height: '40px', background: '#f4f5f6', border: '1px solid #e1e3e5', borderRadius: '4px', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
-                                                                <img src="https://images.unsplash.com/photo-1512428559087-560fa5ceab42?auto=format&fit=crop&w=80&h=80&q=80" style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="Plant" />
+                                                <tr style={{
+                                                    borderBottom: '1px solid #e1e3e5',
+                                                    background: isExpanded ? '#fbfcfe' : '#ffffff',
+                                                    transition: 'background 0.2s ease'
+                                                }}>
+                                                    <td style={{ padding: '16px' }}><input type="checkbox" style={{ cursor: 'pointer', transform: 'scale(1.2)' }} /></td>
+                                                    <td style={{ padding: '16px' }}>
+                                                        <InlineStack gap="400" blockAlign="center">
+                                                            <div style={{
+                                                                width: '56px', height: '56px',
+                                                                background: '#f4f5f6', border: '1px solid #e1e3e5',
+                                                                borderRadius: '8px', display: 'flex', alignItems: 'center',
+                                                                justifyContent: 'center', overflow: 'hidden',
+                                                                boxShadow: '0 2px 4px rgba(0,0,0,0.05)'
+                                                            }}>
+                                                                <img
+                                                                    src={g.title === 'Plant' ? "https://images.unsplash.com/photo-1512428559087-560fa5ceab42?auto=format&fit=crop&w=120&h=120&q=80" : "https://images.unsplash.com/photo-1536147116438-62679a5e01f2?auto=format&fit=crop&w=120&h=120&q=80"}
+                                                                    style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                                                                    alt={g.title}
+                                                                />
                                                             </div>
-                                                            <BlockStack gap="0">
-                                                                <Text variant="bodyMd" fontWeight="semibold">{g.title}</Text>
+                                                            <BlockStack gap="050">
+                                                                <Text variant="bodyLg" fontWeight="bold" tone={g.title === 'Plant' ? 'brand' : 'default'}>{g.title}</Text>
                                                                 <Text variant="bodySm" tone="subdued">{g.items.length} variants</Text>
                                                             </BlockStack>
                                                         </InlineStack>
                                                     </td>
-                                                    <td style={{ padding: '12px 16px' }}>
-                                                        <div style={{ maxWidth: '180px' }}>
+                                                    <td style={{ padding: '16px' }}>
+                                                        <div style={{ maxWidth: '200px' }}>
                                                             <TextField
                                                                 label="Price Display"
                                                                 labelHidden
@@ -1247,10 +1322,10 @@ function CreateNewProduct() {
                                                             />
                                                         </div>
                                                     </td>
-                                                    <td style={{ padding: '12px 16px' }}>
-                                                        <Text variant="bodyMd">{g.available}</Text>
+                                                    <td style={{ padding: '16px' }}>
+                                                        <Text variant="bodyLg" fontWeight="semibold">{g.available}</Text>
                                                     </td>
-                                                    <td style={{ padding: '12px 16px', textAlign: 'center' }}>
+                                                    <td style={{ padding: '16px', textAlign: 'center' }}>
                                                         <Button
                                                             variant="plain"
                                                             icon={isExpanded ? ChevronUpIcon : ChevronDownIcon}
@@ -1275,7 +1350,7 @@ function CreateNewProduct() {
                                                                 </InlineStack>
                                                             </td>
                                                             <td style={{ padding: '8px 16px' }}>
-                                                                <div style={{ maxWidth: '100px' }}>
+                                                                <div style={{ maxWidth: '120px' }}>
                                                                     <TextField
                                                                         label="price"
                                                                         labelHidden
@@ -1288,7 +1363,7 @@ function CreateNewProduct() {
                                                                 </div>
                                                             </td>
                                                             <td style={{ padding: '8px 16px' }}>
-                                                                <div style={{ maxWidth: '80px' }}>
+                                                                <div style={{ maxWidth: '100px' }}>
                                                                     <TextField
                                                                         label="qty"
                                                                         labelHidden
@@ -1304,7 +1379,10 @@ function CreateNewProduct() {
                                                                 <Button
                                                                     icon={EditIcon}
                                                                     variant="plain"
-                                                                    disabled // Editor sub-page needs logic update for split products
+                                                                    onClick={() => {
+                                                                        setEditingVariantIndex(subItem.originalIndex);
+                                                                        setEditingVariantType(subItem.type);
+                                                                    }}
                                                                 />
                                                             </td>
                                                         </tr>
