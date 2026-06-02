@@ -1001,6 +1001,18 @@ function CreateNewProduct() {
     const mismatchedSizes = getMismatchedSizes();
     const hasCriticalMismatch = mismatchedSizes.length > 0;
 
+    const handleAddMissingSizes = () => {
+        setPotOptions(prev => {
+            const newOptions = [...prev];
+            const sizeOption = { ...newOptions[0] };
+            const existingValues = new Set(sizeOption.values);
+            mismatchedSizes.forEach(s => existingValues.add(s));
+            sizeOption.values = Array.from(existingValues);
+            newOptions[0] = sizeOption;
+            return newOptions;
+        });
+    };
+
     const handleCreate = async () => {
         if (!title) { setMsg({ text: 'Product title is required.', type: 'error' }); return; }
         if (hasCriticalMismatch) { setMsg({ text: 'Cannot create product: One or more plant sizes do not have a corresponding pot size.', type: 'error' }); return; }
@@ -1115,7 +1127,7 @@ function CreateNewProduct() {
                 <Banner
                     tone="warning"
                     title="Missing Pot Sizes"
-                    action={{ content: 'Add Missing Sizes', onClick: () => { } }}
+                    action={{ content: 'Add Missing Sizes', onClick: handleAddMissingSizes }}
                 >
                     <p>The following plant sizes do not have a matching pot size: <b>{mismatchedSizes.join(', ')}</b>. Please add these sizes to the Pot Options section to ensure bundles work correctly.</p>
                 </Banner>
