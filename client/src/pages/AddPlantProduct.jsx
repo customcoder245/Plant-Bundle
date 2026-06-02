@@ -302,7 +302,7 @@ function DetailedVariantDetailsEditor({
     const [costPerItem, setCostPerItem] = useState(activeVariant.cost_per_item || '4.87');
     const [chargeTax, setChargeTax] = useState(activeVariant.charge_tax !== false);
     const [unitPrice, setUnitPrice] = useState(activeVariant.unit_price || '');
-    
+
     const [inventoryTracked, setInventoryTracked] = useState(activeVariant.inventory_tracked !== false);
     const [quantity, setQuantity] = useState(activeVariant.inventory_quantity || '0');
     const [sku, setSku] = useState(activeVariant.sku || '');
@@ -809,16 +809,18 @@ function CreateNewProduct() {
     const [status, setStatus] = useState('active');
     const [organization, setOrganization] = useState({ type: '', vendor: '', collection: '' });
     const [tags, setTags] = useState([]);
-    
-    // Multi-option configurations matching Image 1
-    const [options, setOptions] = useState([
-        { name: 'Size', values: ['4" Pot', '6" Pot', '8" Pot'] },
-        { name: 'Pot Color', values: ['White', 'Black', 'Teal', 'Light Green', 'Self Watering'] },
-        { name: 'No Pot Option', values: ['With Pot', 'Without Pot'] }
+
+    // Separate Plant and Pot option configurations
+    const [plantOptions, setPlantOptions] = useState([
+        { name: 'Size', values: ['2 Inch', '4 Inch', '6 Inch', '8 Inch'] }
+    ]);
+    const [potOptions, setPotOptions] = useState([
+        { name: 'Size', values: ['Two Inch', 'Four inch', 'Six inch', 'Eight Inch'] },
+        { name: 'Pot Color', values: ['Black', 'Red', 'White'] }
     ]);
 
-    // Combinations of options. 3 * 5 * 2 = 30 variants.
-    const [variants, setVariants] = useState([]);
+    const [plantVariants, setPlantVariants] = useState([]);
+    const [potVariants, setPotVariants] = useState([]);
     const [saving, setSaving] = useState(false);
     const [msg, setMsg] = useState({ text: '', type: '' });
 
@@ -848,101 +850,73 @@ function CreateNewProduct() {
         return combos;
     };
 
-    // Keep variants synchronized to options
+    // Synchronize Plant variants
     useEffect(() => {
-        const combos = generateCombinations(options);
+        const combos = generateCombinations(plantOptions);
+        const nextVariants = combos.map(combo => {
+            const opt1 = combo[0]?.value || '';
+            const key = opt1;
+            const existing = plantVariants.find(v => v.title === key);
+            if (existing) return existing;
+            return {
+                option1: opt1, title: key, price: '29.49', inventory_quantity: '50'
+            };
+        });
+        setPlantVariants(nextVariants);
+    }, [plantOptions]);
+
+    // Synchronize Pot variants
+    useEffect(() => {
+        const combos = generateCombinations(potOptions);
         const nextVariants = combos.map(combo => {
             const opt1 = combo[0]?.value || '';
             const opt2 = combo[1]?.value || '';
-            const opt3 = combo[2]?.value || '';
-            const key = [opt1, opt2, opt3].filter(Boolean).join(' / ');
-
-            // Find existing to preserve configurations
-            const existing = variants.find(v => v.title === key);
+            const key = [opt1, opt2].filter(Boolean).join(' / ');
+            const existing = potVariants.find(v => v.title === key);
             if (existing) return existing;
-
-            // Generate beautifully realistic mock data mirroring screenshots
-            let basePrice = 29.49;
-            let baseQuantity = 36;
-            if (opt1.includes('6')) {
-                basePrice = 45.49;
-                baseQuantity = 27;
-            } else if (opt1.includes('8')) {
-                basePrice = 71.25;
-                baseQuantity = 77;
-            }
-
-            // Adjust price slightly based on pot colors
-            if (opt2 === 'Self Watering') {
-                basePrice += 10.00;
-            } else if (opt2 === 'Teal' || opt2 === 'Light Green') {
-                basePrice += 5.00;
-            }
-
-            // Adjust price for no-pot discounts
-            if (opt3 === 'Without Pot') {
-                basePrice = Math.max(9.99, basePrice - 10.00);
-            }
-
-            // Stagger quantities slightly for realism
-            const finalQty = opt2 === 'Black' ? baseQuantity + 5 : opt2 === 'Teal' ? baseQuantity - 3 : baseQuantity;
-
             return {
-                option1: opt1,
-                option2: opt2,
-                option3: opt3,
-                title: key,
-                pot_size: opt1,
-                price: basePrice.toFixed(2),
-                compare_at_price: '',
-                cost_per_item: '4.87',
-                charge_tax: true,
-                unit_price: '',
-                inventory_tracked: true,
-                inventory_quantity: String(Math.max(0, finalQty)),
-                sku: '',
-                barcode: '',
-                inventory_policy: 'deny',
-                physical_product: true,
-                weight: '1.0',
-                weight_unit: 'lb',
-                package_type: 'Store default • #6 - 12 x 12 x 6 in, 0 lb',
-                country_of_origin: '',
-                hs_code: '',
-                metafields: {
-                    color_image: '', supplier_4: '', supplier_3: '', supplier_2: '',
-                    age_group: '', condition: '', gender: '', mpn: '',
-                    supplier: '', variant_title: '', pots: '', width: '', height: ''
-                }
+                option1: opt1, option2: opt2, title: key, price: '15.00', inventory_quantity: '100'
             };
         });
-        setVariants(nextVariants);
-    }, [options]);
+        setPotVariants(nextVariants);
+    }, [potOptions]);
 
-    // Handle tag additions for Size/Color/NoPot option tags
-    const handleAddValueTag = (optIndex, valueText) => {
+    const handleAddPlantTag = (optIndex, valueText) => {
         if (!valueText.trim()) return;
-        const next = [...options];
+        const next = [...plantOptions];
         if (!next[optIndex].values.includes(valueText.trim())) {
             next[optIndex].values.push(valueText.trim());
-            setOptions(next);
+            setPlantOptions(next);
         }
     };
-
-    const handleRemoveValueTag = (optIndex, valIndex) => {
-        const next = [...options];
+    const handleRemovePlantTag = (optIndex, valIndex) => {
+        const next = [...plantOptions];
         next[optIndex].values = next[optIndex].values.filter((_, idx) => idx !== valIndex);
-        setOptions(next);
+        setPlantOptions(next);
     };
 
-    // Grouping calculations for the variants list view
+    const handleAddPotTag = (optIndex, valueText) => {
+        if (!valueText.trim()) return;
+        const next = [...potOptions];
+        if (!next[optIndex].values.includes(valueText.trim())) {
+            next[optIndex].values.push(valueText.trim());
+            setPotOptions(next);
+        }
+    };
+    const handleRemovePotTag = (optIndex, valIndex) => {
+        const next = [...potOptions];
+        next[optIndex].values = next[optIndex].values.filter((_, idx) => idx !== valIndex);
+        setPotOptions(next);
+    };
+
     const getGroupedVariants = () => {
         const groups = {};
-        variants.forEach(v => {
-            let key = v.option1; // Size
-            if (groupBy === 'Pot Color') key = v.option2;
-            else if (groupBy === 'No Pot Option') key = v.option3;
-
+        const all = [
+            ...plantVariants.map(v => ({ ...v, productGroup: 'Plant' })),
+            ...potVariants.map(v => ({ ...v, productGroup: 'Pot' }))
+        ];
+        all.forEach(v => {
+            let key = v.productGroup;
             if (!groups[key]) {
                 groups[key] = {
                     title: key,
@@ -984,72 +958,72 @@ function CreateNewProduct() {
         setTimeout(() => setMsg({ text: '', type: '' }), 4000);
     };
 
-    // Inline prices and inventory updates inside the main table
-    const handleUpdateVariantDirectly = (variantTitle, field, val) => {
-        setVariants(prev => prev.map(v => {
-            if (v.title === variantTitle) {
-                return { ...v, [field]: val };
-            }
-            return v;
-        }));
+    const combinedVariants = [
+        ...plantVariants.map((v, i) => ({ ...v, type: 'plant', originalIndex: i })),
+        ...potVariants.map((v, i) => ({ ...v, type: 'pot', originalIndex: i }))
+    ];
+
+    const handleUpdateVariantDirectly = (variantTitle, field, val, type) => {
+        if (type === 'plant') {
+            setPlantVariants(prev => prev.map(v => v.title === variantTitle ? { ...v, [field]: val } : v));
+        } else {
+            setPotVariants(prev => prev.map(v => v.title === variantTitle ? { ...v, [field]: val } : v));
+        }
     };
 
-    // Bulk price update for grouped item rows
     const handleGroupPriceChange = (groupTitle, val) => {
         if (!val || isNaN(val)) return;
-        setVariants(prev => prev.map(v => {
-            let matches = false;
-            if (groupBy === 'Size' && v.option1 === groupTitle) matches = true;
-            else if (groupBy === 'Pot Color' && v.option2 === groupTitle) matches = true;
-            else if (groupBy === 'No Pot Option' && v.option3 === groupTitle) matches = true;
-
-            if (matches) {
-                return { ...v, price: parseFloat(val).toFixed(2) };
-            }
-            return v;
-        }));
+        const price = parseFloat(val).toFixed(2);
+        if (groupTitle === 'Plant') {
+            setPlantVariants(prev => prev.map(v => ({ ...v, price })));
+        } else if (groupTitle === 'Pot') {
+            setPotVariants(prev => prev.map(v => ({ ...v, price })));
+        }
     };
 
     const handleCreate = async () => {
         if (!title) { setMsg({ text: 'Product title is required.', type: 'error' }); return; }
         setSaving(true);
         try {
-            const res = await fetch('/api/products/create', {
+            // Create Plant Product
+            const plantRes = await fetch('/api/products/create', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    title,
+                    title: title,
                     description,
-                    options: options.map(o => ({ name: o.name, values: o.values })),
-                    variants: variants.map(v => ({
+                    options: plantOptions.map(o => ({ name: o.name, values: o.values })),
+                    variants: plantVariants.map(v => ({
                         option1: v.option1,
-                        option2: v.option2,
-                        option3: v.option3,
                         price: v.price,
-                        compare_at_price: v.compare_at_price || null,
-                        inventory_management: v.inventory_tracked ? 'shopify' : null,
                         inventory_quantity: parseInt(v.inventory_quantity) || 0,
-                        sku: v.sku || '',
-                        barcode: v.barcode || '',
-                        weight: v.weight ? parseFloat(v.weight) : 0,
-                        weight_unit: v.weight_unit || 'lb',
-                        pot_size: v.pot_size
                     }))
                 })
             });
-            const data = await res.json();
-            if (res.ok) {
-                setMsg({ text: `✅ "${title}" has been created and synced beautifully with ${variants.length} variants!`, type: 'success' });
-                // Reset form
+
+            // Create Pot Product
+            const potRes = await fetch('/api/products/create', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    title: title + " Pots",
+                    description: `Pots for ${title}`,
+                    options: potOptions.map(o => ({ name: o.name, values: o.values })),
+                    variants: potVariants.map(v => ({
+                        option1: v.option1,
+                        option2: v.option2,
+                        price: v.price,
+                        inventory_quantity: parseInt(v.inventory_quantity) || 0,
+                    }))
+                })
+            });
+
+            if (plantRes.ok && potRes.ok) {
+                setMsg({ text: `✅ 2 Products ("${title}" and "${title} Pots") have been created successfully!`, type: 'success' });
                 setTitle('');
                 setDescription('');
-                setOptions([
-                    { name: 'Size', values: ['4" Pot', '6" Pot', '8" Pot'] },
-                    { name: 'Pot Color', values: ['White', 'Black', 'Teal', 'Light Green', 'Self Watering'] },
-                    { name: 'No Pot Option', values: ['With Pot', 'Without Pot'] }
-                ]);
             } else {
-                throw new Error(data.error);
+                throw new Error('Failed to create one or both products.');
             }
         } catch (e) {
             setMsg({ text: `❌ ${e.message}`, type: 'error' });
@@ -1059,21 +1033,7 @@ function CreateNewProduct() {
         }
     };
 
-    const totalAvailable = variants.reduce((acc, curr) => acc + (parseInt(curr.inventory_quantity) || 0), 0);
-
-    // Render detailed editor sub-page if a variant is selected
-    if (editingVariantIndex !== null) {
-        return (
-            <DetailedVariantDetailsEditor
-                productTitle={title}
-                variants={variants}
-                editingIndex={editingVariantIndex}
-                setEditingIndex={setEditingVariantIndex}
-                onSaveVariant={handleSaveVariant}
-                onCancel={() => setEditingVariantIndex(null)}
-            />
-        );
-    }
+    const totalAvailable = [...plantVariants, ...potVariants].reduce((acc, curr) => acc + (parseInt(curr.inventory_quantity) || 0), 0);
 
     const groupedVariants = getGroupedVariants();
 
@@ -1146,48 +1106,75 @@ function CreateNewProduct() {
                                             + Add variant
                                         </Button>
                                     </InlineStack>
-                                    
-                                    {/* Option rows with drag handles & tags */}
-                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                                        {options.map((opt, optIdx) => (
-                                            <div key={opt.name} style={{ display: 'flex', gap: '16px', alignItems: 'center', padding: '12px 16px', background: '#f9fafb', border: '1px solid #e1e3e5', borderRadius: '8px' }}>
-                                                <div style={{ cursor: 'grab', display: 'flex', alignItems: 'center' }}>
-                                                    <Icon source={MenuVerticalIcon} tone="subdued" />
+
+                                    {/* Separate sections for Plant and Pot options */}
+                                    <BlockStack gap="400">
+                                        <Box background="bg-surface-secondary" padding="200" borderRadius="200">
+                                            <Text variant="headingSm" tone="brand">Plant Options</Text>
+                                        </Box>
+                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                                            {plantOptions.map((opt, optIdx) => (
+                                                <div key={opt.name} style={{ display: 'flex', gap: '16px', alignItems: 'center', padding: '12px 16px', background: '#ffffff', border: '1px solid #e1e3e5', borderRadius: '8px' }}>
+                                                    <div style={{ flex: 1 }}>
+                                                        <BlockStack gap="100">
+                                                            <Text variant="bodyMd" fontWeight="semibold">{opt.name}</Text>
+                                                            <InlineStack gap="100">
+                                                                {opt.values.map((v, valIdx) => (
+                                                                    <Tag key={v} onRemove={() => handleRemovePlantTag(optIdx, valIdx)}>{v}</Tag>
+                                                                ))}
+                                                                <div style={{ maxWidth: '100px' }}>
+                                                                    <input
+                                                                        placeholder="+ Value"
+                                                                        onKeyDown={(e) => {
+                                                                            if (e.key === 'Enter') {
+                                                                                handleAddPlantTag(optIdx, e.target.value);
+                                                                                e.target.value = '';
+                                                                            }
+                                                                        }}
+                                                                        style={{ padding: '2px 8px', borderRadius: '4px', border: '1px solid #c4cdd5', fontSize: '13px', width: '100%' }}
+                                                                    />
+                                                                </div>
+                                                            </InlineStack>
+                                                        </BlockStack>
+                                                    </div>
                                                 </div>
-                                                <div style={{ flex: 1 }}>
-                                                    <BlockStack gap="100">
-                                                        <Text variant="bodyMd" fontWeight="semibold">{opt.name}</Text>
-                                                        <InlineStack gap="100">
-                                                            {opt.values.map((v, valIdx) => (
-                                                                <Tag key={v} onRemove={() => handleRemoveValueTag(optIdx, valIdx)}>
-                                                                    {v}
-                                                                </Tag>
-                                                            ))}
-                                                            {/* Add sub-tag input box inline */}
-                                                            <div style={{ maxWidth: '100px' }}>
-                                                                <input
-                                                                    placeholder="+ Value"
-                                                                    onKeyDown={(e) => {
-                                                                        if (e.key === 'Enter') {
-                                                                            handleAddValueTag(optIdx, e.target.value);
-                                                                            e.target.value = '';
-                                                                        }
-                                                                    }}
-                                                                    style={{
-                                                                        padding: '2px 8px',
-                                                                        borderRadius: '4px',
-                                                                        border: '1px solid #c4cdd5',
-                                                                        fontSize: '13px',
-                                                                        width: '100%'
-                                                                    }}
-                                                                />
-                                                            </div>
-                                                        </InlineStack>
-                                                    </BlockStack>
+                                            ))}
+                                        </div>
+
+                                        <Divider />
+
+                                        <Box background="bg-surface-secondary" padding="200" borderRadius="200">
+                                            <Text variant="headingSm" tone="brand">Pot Options</Text>
+                                        </Box>
+                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                                            {potOptions.map((opt, optIdx) => (
+                                                <div key={opt.name} style={{ display: 'flex', gap: '16px', alignItems: 'center', padding: '12px 16px', background: '#ffffff', border: '1px solid #e1e3e5', borderRadius: '8px' }}>
+                                                    <div style={{ flex: 1 }}>
+                                                        <BlockStack gap="100">
+                                                            <Text variant="bodyMd" fontWeight="semibold">{opt.name}</Text>
+                                                            <InlineStack gap="100">
+                                                                {opt.values.map((v, valIdx) => (
+                                                                    <Tag key={v} onRemove={() => handleRemovePotTag(optIdx, valIdx)}>{v}</Tag>
+                                                                ))}
+                                                                <div style={{ maxWidth: '100px' }}>
+                                                                    <input
+                                                                        placeholder="+ Value"
+                                                                        onKeyDown={(e) => {
+                                                                            if (e.key === 'Enter') {
+                                                                                handleAddPotTag(optIdx, e.target.value);
+                                                                                e.target.value = '';
+                                                                            }
+                                                                        }}
+                                                                        style={{ padding: '2px 8px', borderRadius: '4px', border: '1px solid #c4cdd5', fontSize: '13px', width: '100%' }}
+                                                                    />
+                                                                </div>
+                                                            </InlineStack>
+                                                        </BlockStack>
+                                                    </div>
                                                 </div>
-                                            </div>
-                                        ))}
-                                    </div>
+                                            ))}
+                                        </div>
+                                    </BlockStack>
                                 </BlockStack>
                             </Box>
                             <Divider />
@@ -1274,7 +1261,6 @@ function CreateNewProduct() {
 
                                                 {/* Expanded Individual Rows */}
                                                 {isExpanded && g.items.map(subItem => {
-                                                    const originalIndex = variants.findIndex(val => val.title === subItem.title);
                                                     return (
                                                         <tr key={subItem.title} style={{ borderBottom: '1px solid #f1f2f3', background: '#fdfdfd' }}>
                                                             <td style={{ padding: '8px 16px 8px 36px' }}><input type="checkbox" style={{ cursor: 'pointer' }} /></td>
@@ -1295,7 +1281,7 @@ function CreateNewProduct() {
                                                                         labelHidden
                                                                         prefix="$"
                                                                         value={subItem.price}
-                                                                        onChange={(val) => handleUpdateVariantDirectly(subItem.title, 'price', val)}
+                                                                        onChange={(val) => handleUpdateVariantDirectly(subItem.title, 'price', val, subItem.type)}
                                                                         autoComplete="off"
                                                                         size="slim"
                                                                     />
@@ -1308,7 +1294,7 @@ function CreateNewProduct() {
                                                                         labelHidden
                                                                         type="number"
                                                                         value={subItem.inventory_quantity}
-                                                                        onChange={(val) => handleUpdateVariantDirectly(subItem.title, 'inventory_quantity', val)}
+                                                                        onChange={(val) => handleUpdateVariantDirectly(subItem.title, 'inventory_quantity', val, subItem.type)}
                                                                         autoComplete="off"
                                                                         size="slim"
                                                                     />
@@ -1318,7 +1304,7 @@ function CreateNewProduct() {
                                                                 <Button
                                                                     icon={EditIcon}
                                                                     variant="plain"
-                                                                    onClick={() => setEditingVariantIndex(originalIndex)}
+                                                                    disabled // Editor sub-page needs logic update for split products
                                                                 />
                                                             </td>
                                                         </tr>
