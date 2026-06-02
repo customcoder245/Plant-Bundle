@@ -564,6 +564,42 @@ function DetailedVariantDetailsEditor({
                                 </Box>
                             </Card>
 
+                            {/* Bundle Breakdown Card (Bundle App Functionality) */}
+                            {activeVariant.mapping && (
+                                <Card>
+                                    <Box padding="400">
+                                        <BlockStack gap="400">
+                                            <InlineStack align="space-between">
+                                                <Text variant="headingMd">Bundle Composition (Internal)</Text>
+                                                <Badge tone="info">2 Child Items Linked</Badge>
+                                            </InlineStack>
+                                            <div style={{ background: '#f9fafb', borderRadius: '8px', padding: '16px', border: '1px solid #e1e3e5' }}>
+                                                <BlockStack gap="300">
+                                                    <InlineStack gap="300" blockAlign="center">
+                                                        <Thumbnail source={ImageIcon} size="small" />
+                                                        <BlockStack gap="050">
+                                                            <Text variant="bodyMd" fontWeight="bold">Component 1: {activeVariant.mapping.plant.value} Plant</Text>
+                                                            <Text variant="bodySm" tone="subdued">Mapped to {activeVariant.mapping.plant.name}</Text>
+                                                        </BlockStack>
+                                                    </InlineStack>
+                                                    <Divider />
+                                                    <InlineStack gap="300" blockAlign="center">
+                                                        <Thumbnail source={ImageIcon} size="small" />
+                                                        <BlockStack gap="050">
+                                                            <Text variant="bodyMd" fontWeight="bold">Component 2: {activeVariant.mapping.pot.value} Pot</Text>
+                                                            <Text variant="bodySm" tone="subdued">Mapped to {activeVariant.mapping.pot.name}</Text>
+                                                        </BlockStack>
+                                                    </InlineStack>
+                                                </BlockStack>
+                                            </div>
+                                            <Banner tone="info">
+                                                <p>Our PERN backend will automatically track inventory for these two child items whenever this bundle variant is sold.</p>
+                                            </Banner>
+                                        </BlockStack>
+                                    </Box>
+                                </Card>
+                            )}
+
                             {/* Price Card */}
                             <Card>
                                 <Box padding="400">
