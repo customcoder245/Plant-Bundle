@@ -9,7 +9,7 @@ import {
     PlusIcon, DeleteIcon, SearchIcon, RefreshIcon,
     ChevronLeftIcon, DuplicateIcon, ViewIcon, ShareIcon,
     MenuVerticalIcon, ImageIcon, CheckCircleIcon,
-    ChevronDownIcon, ChevronUpIcon, EditIcon
+    ChevronDownIcon, ChevronUpIcon, EditIcon, AlertCircleIcon
 } from '@shopify/polaris-icons';
 
 /* ─────────────────────────────────────────────────────────────
@@ -985,8 +985,25 @@ function CreateNewProduct() {
         }
     };
 
+    // Size Validation Logic (Image 3 requirements)
+    const getMismatchedSizes = () => {
+        const plantSizes = plantOptions[0]?.values || [];
+        const potSizes = potOptions[0]?.values || [];
+        return plantSizes.filter(ps => {
+            const normalizedPs = ps.toLowerCase().replace(/\s+/g, '');
+            return !potSizes.some(pots => {
+                const normalizedPots = pots.toLowerCase().replace(/\s+/g, '');
+                return normalizedPots.includes(normalizedPs) || normalizedPs.includes(normalizedPots);
+            });
+        });
+    };
+
+    const mismatchedSizes = getMismatchedSizes();
+    const hasCriticalMismatch = mismatchedSizes.length > 0;
+
     const handleCreate = async () => {
         if (!title) { setMsg({ text: 'Product title is required.', type: 'error' }); return; }
+        if (hasCriticalMismatch) { setMsg({ text: 'Cannot create product: One or more plant sizes do not have a corresponding pot size.', type: 'error' }); return; }
         setSaving(true);
         try {
             if (bundleMode === 'merged') {
@@ -1091,6 +1108,16 @@ function CreateNewProduct() {
             {msg.text && (
                 <Banner tone={msg.type === 'success' ? 'success' : 'critical'}>
                     <p>{msg.text}</p>
+                </Banner>
+            )}
+
+            {hasCriticalMismatch && (
+                <Banner
+                    tone="warning"
+                    title="Missing Pot Sizes"
+                    action={{ content: 'Add Missing Sizes', onClick: () => { } }}
+                >
+                    <p>The following plant sizes do not have a matching pot size: <b>{mismatchedSizes.join(', ')}</b>. Please add these sizes to the Pot Options section to ensure bundles work correctly.</p>
                 </Banner>
             )}
 
@@ -1331,16 +1358,23 @@ function CreateNewProduct() {
 
                                                 {/* Expanded Individual Rows */}
                                                 {isExpanded && g.items.map(subItem => {
+                                                    const isMismatched = g.title === 'Plant' && mismatchedSizes.includes(subItem.option1);
                                                     return (
-                                                        <tr key={subItem.title} style={{ borderBottom: '1px solid #f1f2f3', background: '#fdfdfd' }}>
+                                                        <tr key={subItem.title} style={{
+                                                            borderBottom: '1px solid #f1f2f3',
+                                                            background: isMismatched ? '#fffaf5' : '#fdfdfd'
+                                                        }}>
                                                             <td style={{ padding: '8px 16px 8px 36px' }}><input type="checkbox" style={{ cursor: 'pointer' }} /></td>
                                                             <td style={{ padding: '8px 16px' }}>
                                                                 <InlineStack gap="200" blockAlign="center">
                                                                     <div style={{ width: '28px', height: '28px', background: '#fcfcfc', border: '1px solid #e8e9ea', borderRadius: '4px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                                                                        <Icon source={ImageIcon} tone="subdued" />
+                                                                        <Icon source={isMismatched ? AlertCircleIcon : ImageIcon} tone={isMismatched ? 'warning' : 'subdued'} />
                                                                     </div>
                                                                     <BlockStack gap="0">
-                                                                        <Text variant="bodySm">{subItem.title}</Text>
+                                                                        <Text variant="bodySm" tone={isMismatched ? 'caution' : 'default'}>
+                                                                            {subItem.title}
+                                                                            {isMismatched && " (No matching pot size found)"}
+                                                                        </Text>
                                                                     </BlockStack>
                                                                 </InlineStack>
                                                             </td>
@@ -1354,6 +1388,7 @@ function CreateNewProduct() {
                                                                         onChange={(val) => handleUpdateVariantDirectly(subItem.title, 'price', val, subItem.type)}
                                                                         autoComplete="off"
                                                                         size="slim"
+                                                                        disabled={isMismatched}
                                                                     />
                                                                 </div>
                                                             </td>
@@ -1367,6 +1402,7 @@ function CreateNewProduct() {
                                                                         onChange={(val) => handleUpdateVariantDirectly(subItem.title, 'inventory_quantity', val, subItem.type)}
                                                                         autoComplete="off"
                                                                         size="slim"
+                                                                        disabled={isMismatched}
                                                                     />
                                                                 </div>
                                                             </td>
@@ -1374,6 +1410,7 @@ function CreateNewProduct() {
                                                                 <Button
                                                                     icon={EditIcon}
                                                                     variant="plain"
+                                                                    disabled={isMismatched}
                                                                     onClick={() => {
                                                                         setEditingVariantIndex(subItem.originalIndex);
                                                                         setEditingVariantType(subItem.type);
@@ -1423,6 +1460,7 @@ function CreateNewProduct() {
                         size="large"
                         loading={saving}
                         onClick={handleCreate}
+                        disabled={hasCriticalMismatch}
                         icon={PlusIcon}
                     >
                         Save & Create Product ({plantVariants.length + potVariants.length} Variants)
