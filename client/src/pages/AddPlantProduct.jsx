@@ -889,20 +889,37 @@ function CreateNewProduct() {
     // Synchronize Merged variants
     useEffect(() => {
         if (bundleMode !== 'merged') return;
-        const colorOpt = potOptions.find(o => o.name === 'Pot Color');
-        const combos = generateCombinations([...plantOptions, colorOpt || { name: 'Pot Color', values: [] }]);
+        const plantOptName = plantOptions[0]?.name || 'Size';
+        const colorOpt = potOptions.find(o => o.name === 'Pot Color' || o.name === 'Color');
+        const colorOptName = colorOpt?.name || 'Pot Color';
+
+        const combos = generateCombinations([...plantOptions, colorOpt || { name: colorOptName, values: [] }]);
         const nextVariants = combos.map(combo => {
             const size = combo[0]?.value || '';
             const color = combo[1]?.value || '';
             const key = [size, color].filter(Boolean).join(' / ');
             const existing = mergedVariants.find(v => v.title === key);
             if (existing) return existing;
+
+            // Try to find matching plant and pot prices for initial default
+            const pVariant = plantVariants.find(pv => pv.option1 === size);
+            const potVariant = potVariants.find(pv => pv.option2 === color && pv.option1 === size);
+            const defaultPrice = (parseFloat(pVariant?.price || '29.49') + parseFloat(potVariant?.price || '15.00')).toFixed(2);
+
             return {
-                option1: size, option2: color, title: key, price: '45.00', inventory_quantity: '50'
+                option1: size,
+                option2: color,
+                title: key,
+                price: defaultPrice,
+                inventory_quantity: pVariant?.inventory_quantity || '50',
+                mapping: {
+                    plant: { name: plantOptName, value: size },
+                    pot: { name: colorOptName, value: color }
+                }
             };
         });
         setMergedVariants(nextVariants);
-    }, [plantOptions, potOptions, bundleMode]);
+    }, [plantOptions, potOptions, bundleMode, plantVariants, potVariants]);
 
     const handleAddPlantTag = (optIndex, valueText) => {
         if (!valueText.trim()) return;
@@ -1050,8 +1067,8 @@ function CreateNewProduct() {
                         title: title,
                         description,
                         options: [
-                            { name: 'Size', values: plantOptions[0].values },
-                            { name: 'Pot Color', values: potOptions.find(o => o.name === 'Pot Color')?.values || [] }
+                            { name: plantOptions[0]?.name || 'Size', values: plantOptions[0]?.values || [] },
+                            { name: potOptions.find(o => o.name === 'Pot Color' || o.name === 'Color')?.name || 'Pot Color', values: potOptions.find(o => o.name === 'Pot Color' || o.name === 'Color')?.values || [] }
                         ],
                         variants: mergedVariants.map(v => ({
                             option1: v.option1,
@@ -1399,10 +1416,16 @@ function CreateNewProduct() {
                                                                         <Icon source={isMismatched ? AlertCircleIcon : ImageIcon} tone={isMismatched ? 'warning' : 'subdued'} />
                                                                     </div>
                                                                     <BlockStack gap="0">
-                                                                        <Text variant="bodySm" tone={isMismatched ? 'caution' : 'default'}>
+                                                                        <Text variant="bodySm" tone={isMismatched ? 'caution' : 'default'} fontWeight="bold">
                                                                             {subItem.title}
                                                                             {isMismatched && " (No matching pot size found)"}
                                                                         </Text>
+                                                                        {subItem.mapping && (
+                                                                            <div style={{ display: 'flex', gap: '8px', marginTop: '2px' }}>
+                                                                                <Badge size="small" tone="attention">Plant: {subItem.mapping.plant.value}</Badge>
+                                                                                <Badge size="small" tone="info">Pot: {subItem.mapping.pot.value}</Badge>
+                                                                            </div>
+                                                                        )}
                                                                     </BlockStack>
                                                                 </InlineStack>
                                                             </td>
