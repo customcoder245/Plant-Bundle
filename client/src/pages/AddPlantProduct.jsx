@@ -1149,50 +1149,72 @@ function CreateNewProduct() {
                                         <Text variant="headingMd">Variants</Text>
                                         <InlineStack gap="300">
                                             <Select
-                                                label="Sync Mode"
+                                                label="Creation Strategy"
                                                 labelHidden
                                                 options={[
-                                                    { label: 'Create 2 Products (Split)', value: 'split' },
-                                                    { label: 'Create 1 Product (Merged)', value: 'merged' }
+                                                    { label: 'Standard Bundle (Separate Products)', value: 'split' },
+                                                    { label: 'Single Product (Combinations)', value: 'merged' }
                                                 ]}
                                                 value={bundleMode}
                                                 onChange={setBundleMode}
                                             />
                                             <Button
-                                                onClick={() => setEditingVariantIndex(0)}
-                                                icon={PlusIcon}
                                                 variant="plain"
+                                                icon={PlusIcon}
+                                                onClick={() => {
+                                                    // Logic for adding a manual variant if needed
+                                                }}
                                             >
-                                                + Add variant
+                                                Add variant
                                             </Button>
                                         </InlineStack>
                                     </InlineStack>
 
-                                    {/* Separate sections for Plant and Pot options */}
+                                    {/* Unified Option rows with drag handles & tags (Matching Image) */}
                                     <BlockStack gap="400">
-                                        <Box background="bg-surface-secondary" padding="200" borderRadius="200">
-                                            <Text variant="headingSm" tone="brand">Plant Options</Text>
-                                        </Box>
-                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                                            {plantOptions.map((opt, optIdx) => (
-                                                <div key={opt.name} style={{ display: 'flex', gap: '16px', alignItems: 'center', padding: '12px 16px', background: '#ffffff', border: '1px solid #e1e3e5', borderRadius: '8px' }}>
+                                        <div style={{ border: '1px solid #e1e3e5', borderRadius: '8px', overflow: 'hidden' }}>
+                                            {[...plantOptions, ...potOptions].map((opt, optIdx) => (
+                                                <div key={opt.name} style={{
+                                                    display: 'flex',
+                                                    gap: '16px',
+                                                    alignItems: 'start',
+                                                    padding: '16px',
+                                                    background: '#ffffff',
+                                                    borderBottom: '1px solid #e1e3e5'
+                                                }}>
+                                                    <div style={{ cursor: 'grab', padding: '4px 0' }}>
+                                                        <Icon source={MenuVerticalIcon} tone="subdued" />
+                                                    </div>
                                                     <div style={{ flex: 1 }}>
                                                         <BlockStack gap="100">
                                                             <Text variant="bodyMd" fontWeight="semibold">{opt.name}</Text>
                                                             <InlineStack gap="100">
                                                                 {opt.values.map((v, valIdx) => (
-                                                                    <Tag key={v} onRemove={() => handleRemovePlantTag(optIdx, valIdx)}>{v}</Tag>
+                                                                    <Tag
+                                                                        key={v}
+                                                                        onRemove={() => {
+                                                                            if (optIdx < plantOptions.length) handleRemovePlantTag(optIdx, valIdx);
+                                                                            else handleRemovePotTag(optIdx - plantOptions.length, valIdx);
+                                                                        }}
+                                                                    >
+                                                                        {v}
+                                                                    </Tag>
                                                                 ))}
                                                                 <div style={{ maxWidth: '100px' }}>
                                                                     <input
-                                                                        placeholder="+ Value"
+                                                                        placeholder="+ Add Value"
                                                                         onKeyDown={(e) => {
                                                                             if (e.key === 'Enter') {
-                                                                                handleAddPlantTag(optIdx, e.target.value);
+                                                                                if (optIdx < plantOptions.length) handleAddPlantTag(optIdx, e.target.value);
+                                                                                else handleAddPotTag(optIdx - plantOptions.length, e.target.value);
                                                                                 e.target.value = '';
                                                                             }
                                                                         }}
-                                                                        style={{ padding: '2px 8px', borderRadius: '4px', border: '1px solid #c4cdd5', fontSize: '13px', width: '100%' }}
+                                                                        style={{
+                                                                            padding: '2px 8px', borderRadius: '4px',
+                                                                            border: '1px solid #c4cdd5', fontSize: '13px',
+                                                                            width: '100%'
+                                                                        }}
                                                                     />
                                                                 </div>
                                                             </InlineStack>
@@ -1200,40 +1222,13 @@ function CreateNewProduct() {
                                                     </div>
                                                 </div>
                                             ))}
-                                        </div>
-
-                                        <Divider />
-
-                                        <Box background="bg-surface-secondary" padding="200" borderRadius="200">
-                                            <Text variant="headingSm" tone="brand">Pot Options</Text>
-                                        </Box>
-                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                                            {potOptions.map((opt, optIdx) => (
-                                                <div key={opt.name} style={{ display: 'flex', gap: '16px', alignItems: 'center', padding: '12px 16px', background: '#ffffff', border: '1px solid #e1e3e5', borderRadius: '8px' }}>
-                                                    <div style={{ flex: 1 }}>
-                                                        <BlockStack gap="100">
-                                                            <Text variant="bodyMd" fontWeight="semibold">{opt.name}</Text>
-                                                            <InlineStack gap="100">
-                                                                {opt.values.map((v, valIdx) => (
-                                                                    <Tag key={v} onRemove={() => handleRemovePotTag(optIdx, valIdx)}>{v}</Tag>
-                                                                ))}
-                                                                <div style={{ maxWidth: '100px' }}>
-                                                                    <input
-                                                                        placeholder="+ Value"
-                                                                        onKeyDown={(e) => {
-                                                                            if (e.key === 'Enter') {
-                                                                                handleAddPotTag(optIdx, e.target.value);
-                                                                                e.target.value = '';
-                                                                            }
-                                                                        }}
-                                                                        style={{ padding: '2px 8px', borderRadius: '4px', border: '1px solid #c4cdd5', fontSize: '13px', width: '100%' }}
-                                                                    />
-                                                                </div>
-                                                            </InlineStack>
-                                                        </BlockStack>
-                                                    </div>
-                                                </div>
-                                            ))}
+                                            <div
+                                                onClick={() => { }} // Could add logic for generic option addition
+                                                style={{ padding: '12px 16px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px' }}
+                                            >
+                                                <Icon source={PlusIcon} tone="subdued" />
+                                                <Text variant="bodyMd" tone="subdued">Add another option</Text>
+                                            </div>
                                         </div>
                                     </BlockStack>
                                 </BlockStack>
