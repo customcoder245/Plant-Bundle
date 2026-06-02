@@ -821,6 +821,7 @@ function CreateNewProduct() {
 
     const [plantVariants, setPlantVariants] = useState([]);
     const [potVariants, setPotVariants] = useState([]);
+    const [mergedVariants, setMergedVariants] = useState([]);
     const [saving, setSaving] = useState(false);
     const [msg, setMsg] = useState({ text: '', type: '' });
 
@@ -885,6 +886,24 @@ function CreateNewProduct() {
         setPotVariants(nextVariants);
     }, [potOptions]);
 
+    // Synchronize Merged variants
+    useEffect(() => {
+        if (bundleMode !== 'merged') return;
+        const colorOpt = potOptions.find(o => o.name === 'Pot Color');
+        const combos = generateCombinations([...plantOptions, colorOpt || { name: 'Pot Color', values: [] }]);
+        const nextVariants = combos.map(combo => {
+            const size = combo[0]?.value || '';
+            const color = combo[1]?.value || '';
+            const key = [size, color].filter(Boolean).join(' / ');
+            const existing = mergedVariants.find(v => v.title === key);
+            if (existing) return existing;
+            return {
+                option1: size, option2: color, title: key, price: '45.00', inventory_quantity: '50'
+            };
+        });
+        setMergedVariants(nextVariants);
+    }, [plantOptions, potOptions, bundleMode]);
+
     const handleAddPlantTag = (optIndex, valueText) => {
         if (!valueText.trim()) return;
         const next = [...plantOptions];
@@ -915,10 +934,16 @@ function CreateNewProduct() {
 
     const getGroupedVariants = () => {
         const groups = {};
-        const all = [
-            ...plantVariants.map(v => ({ ...v, productGroup: 'Plant' })),
-            ...potVariants.map(v => ({ ...v, productGroup: 'Pot' }))
-        ];
+        let all = [];
+
+        if (bundleMode === 'merged') {
+            all = mergedVariants.map((v, i) => ({ ...v, productGroup: 'Bundle', originalIndex: i, type: 'merged' }));
+        } else {
+            all = [
+                ...plantVariants.map((v, i) => ({ ...v, productGroup: 'Plant', originalIndex: i, type: 'plant' })),
+                ...potVariants.map((v, i) => ({ ...v, productGroup: 'Pot', originalIndex: i, type: 'pot' }))
+            ];
+        }
         all.forEach(v => {
             let key = v.productGroup;
             if (!groups[key]) {
@@ -952,12 +977,14 @@ function CreateNewProduct() {
         setExpandedGroups(next);
     };
 
-    // Save individual variant settings (Disabled until editor is updated for split structure)
+    // Save individual variant settings
     const handleSaveVariant = (index, updatedObj, type) => {
         if (type === 'plant') {
             setPlantVariants(prev => prev.map((v, i) => i === index ? updatedObj : v));
-        } else {
+        } else if (type === 'pot') {
             setPotVariants(prev => prev.map((v, i) => i === index ? updatedObj : v));
+        } else {
+            setMergedVariants(prev => prev.map((v, i) => i === index ? updatedObj : v));
         }
         setEditingVariantIndex(null);
     };
@@ -968,11 +995,8 @@ function CreateNewProduct() {
     ];
 
     const handleUpdateVariantDirectly = (variantTitle, field, val, type) => {
-        if (type === 'plant') {
-            setPlantVariants(prev => prev.map(v => v.title === variantTitle ? { ...v, [field]: val } : v));
-        } else {
-            setPotVariants(prev => prev.map(v => v.title === variantTitle ? { ...v, [field]: val } : v));
-        }
+        const setter = type === 'plant' ? setPlantVariants : (type === 'pot' ? setPotVariants : setMergedVariants);
+        setter(prev => prev.map(v => v.title === variantTitle ? { ...v, [field]: val } : v));
     };
 
     const handleGroupPriceChange = (groupTitle, val) => {
@@ -1019,19 +1043,6 @@ function CreateNewProduct() {
         setSaving(true);
         try {
             if (bundleMode === 'merged') {
-                // Generate merged combinations (Size x Color)
-                const combos = generateCombinations([...plantOptions, { name: 'Pot Color', values: potOptions.find(o => o.name === 'Pot Color')?.values || [] }]);
-                const mergedVariants = combos.map(combo => {
-                    const size = combo[0]?.value || '';
-                    const color = combo[1]?.value || '';
-                    return {
-                        option1: size,
-                        option2: color,
-                        price: '45.00',
-                        inventory_quantity: 50
-                    };
-                });
-
                 const res = await fetch('/api/products/create', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -1042,7 +1053,12 @@ function CreateNewProduct() {
                             { name: 'Size', values: plantOptions[0].values },
                             { name: 'Pot Color', values: potOptions.find(o => o.name === 'Pot Color')?.values || [] }
                         ],
-                        variants: mergedVariants
+                        variants: mergedVariants.map(v => ({
+                            option1: v.option1,
+                            option2: v.option2,
+                            price: v.price,
+                            inventory_quantity: parseInt(v.inventory_quantity) || 0,
+                        }))
                     })
                 });
                 if (!res.ok) throw new Error('Failed to create merged product');
