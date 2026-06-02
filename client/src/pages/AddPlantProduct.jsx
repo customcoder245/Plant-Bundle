@@ -1400,7 +1400,6 @@ function CreateNewProduct() {
                                                                         onChange={(val) => handleUpdateVariantDirectly(subItem.title, 'price', val, subItem.type)}
                                                                         autoComplete="off"
                                                                         size="slim"
-                                                                        disabled={isMismatched}
                                                                     />
                                                                 </div>
                                                             </td>
@@ -1414,7 +1413,6 @@ function CreateNewProduct() {
                                                                         onChange={(val) => handleUpdateVariantDirectly(subItem.title, 'inventory_quantity', val, subItem.type)}
                                                                         autoComplete="off"
                                                                         size="slim"
-                                                                        disabled={isMismatched}
                                                                     />
                                                                 </div>
                                                             </td>
@@ -1422,7 +1420,6 @@ function CreateNewProduct() {
                                                                 <Button
                                                                     icon={EditIcon}
                                                                     variant="plain"
-                                                                    disabled={isMismatched}
                                                                     onClick={() => {
                                                                         setEditingVariantIndex(subItem.originalIndex);
                                                                         setEditingVariantType(subItem.type);
