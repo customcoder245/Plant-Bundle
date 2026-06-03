@@ -5,24 +5,14 @@
 [36mvite v5.4.21 [32mbuilding for production...[36m[39m
 transforming...
 [32m✓[39m 3197 modules transformed.
-[31mx[39m Build failed in 6.68s
-[31merror during build:
-[31msrc/pages/AddPlantProduct.jsx (13:28): "ListIcon" is not exported by "node_modules/@shopify/polaris-icons/dist/index.mjs", imported by "src/pages/AddPlantProduct.jsx".[31m
-file: [36mC:/Users/ST/Desktop/Plant-Bundle/client/src/pages/AddPlantProduct.jsx:13:28[31m
+rendering chunks...
+computing gzip size...
+[2mdist/[22m[32mindex.html                 [39m[1m[2m  0.42 kB[22m[1m[22m[2m │ gzip:   0.29 kB[22m
+[2mdist/[22m[35massets/index-C8Sedevx.css  [39m[1m[2m447.19 kB[22m[1m[22m[2m │ gzip:  53.31 kB[22m
+[2mdist/[22m[36massets/index-DWJpXNJA.js   [39m[1m[33m762.73 kB[39m[22m[2m │ gzip: 202.61 kB[22m
 [33m
-11:     MenuVerticalIcon, ImageIcon, CheckCircleIcon,
-12:     ChevronDownIcon, ChevronUpIcon, EditIcon, AlertCircleIcon,
-13:     InfoIcon, SettingsIcon, ListIcon, ProductIcon
-                                ^
-14: } from '@shopify/polaris-icons';
-[31m
-    at getRollupError (file:///C:/Users/ST/Desktop/Plant-Bundle/client/node_modules/rollup/dist/es/shared/parseAst.js:406:41)
-    at error (file:///C:/Users/ST/Desktop/Plant-Bundle/client/node_modules/rollup/dist/es/shared/parseAst.js:402:42)
-    at Module.error (file:///C:/Users/ST/Desktop/Plant-Bundle/client/node_modules/rollup/dist/es/shared/node-entry.js:17380:16)
-    at Module.traceVariable (file:///C:/Users/ST/Desktop/Plant-Bundle/client/node_modules/rollup/dist/es/shared/node-entry.js:17813:29)
-    at ModuleScope.findVariable (file:///C:/Users/ST/Desktop/Plant-Bundle/client/node_modules/rollup/dist/es/shared/node-entry.js:15403:39)
-    at FunctionScope.findVariable (file:///C:/Users/ST/Desktop/Plant-Bundle/client/node_modules/rollup/dist/es/shared/node-entry.js:5676:38)
-    at FunctionBodyScope.findVariable (file:///C:/Users/ST/Desktop/Plant-Bundle/client/node_modules/rollup/dist/es/shared/node-entry.js:5676:38)
-    at Identifier.bind (file:///C:/Users/ST/Desktop/Plant-Bundle/client/node_modules/rollup/dist/es/shared/node-entry.js:5450:40)
-    at Property.bind (file:///C:/Users/ST/Desktop/Plant-Bundle/client/node_modules/rollup/dist/es/shared/node-entry.js:2832:23)
-    at ObjectExpression.bind (file:///C:/Users/ST/Desktop/Plant-Bundle/client/node_modules/rollup/dist/es/shared/node-entry.js:2828:28)[39m
+(!) Some chunks are larger than 500 kB after minification. Consider:
+- Using dynamic import() to code-split the application
+- Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks
+- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.[39m
+[32m✓ built in 8.23s[39m

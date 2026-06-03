@@ -10,7 +10,7 @@ import {
     ChevronLeftIcon, DuplicateIcon, ViewIcon, ShareIcon,
     MenuVerticalIcon, ImageIcon, CheckCircleIcon,
     ChevronDownIcon, ChevronUpIcon, EditIcon, AlertCircleIcon,
-    InfoIcon, SettingsIcon, ListIcon, ProductIcon
+    InfoIcon, NoteIcon
 } from '@shopify/polaris-icons';
 
 /* ─────────────────────────────────────────────────────────────
@@ -447,7 +447,7 @@ function CreateNewProduct() {
                                 <BlockStack gap="400">
                                     <InlineStack align="space-between">
                                         <InlineStack gap="200" blockAlign="center">
-                                            <Icon source={ProductIcon} tone="base" />
+                                            <Icon source={ViewIcon} tone="base" />
                                             <Text variant="headingMd">Bundle Components</Text>
                                         </InlineStack>
                                         <Badge tone="info">2 Items Required</Badge>
@@ -507,7 +507,7 @@ function CreateNewProduct() {
                                 <Box padding="500">
                                     <InlineStack align="space-between">
                                         <InlineStack gap="200" blockAlign="center">
-                                            <Icon source={ListIcon} tone="base" />
+                                            <Icon source={NoteIcon} tone="base" />
                                             <Text variant="headingMd">Resulting Variants</Text>
                                         </InlineStack>
                                         <Text tone="subdued">{mergedVariants.length} combinations created</Text>
